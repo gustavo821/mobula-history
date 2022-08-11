@@ -192,7 +192,7 @@ let currentAsset: any;
 const sendSlackMessage = async (channel: string, text: string) => {
   try {
     await axios.post(
-      "https://hooks.slack.com/services/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",
+      "https://hooks.slack.com/services/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",
       {
         channel,
         text,
