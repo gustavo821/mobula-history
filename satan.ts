@@ -192,7 +192,7 @@ let currentAsset: any;
 const sendSlackMessage = async (channel: string, text: string) => {
   try {
     await axios.post(
-      "https://hooks.slack.com/services/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",
+      "https://hooks.slack.com/services/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",
       {
         channel,
         text,
@@ -247,7 +247,7 @@ console.log = (...params) => {
           .select("*")
           .or(`token0_id.eq.${data[i].id},token1_id.eq.${data[i].id}`)) as any;
 
-        sendSlackMessage(
+        await sendSlackMessage(
           "logs-dev-2",
           "Loading data for asset " + data[i].name
         );
