@@ -1,0 +1,20 @@
+{
+  "name": "mobula-history",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/MobulaFi/mobula-history.git",
+  "author": "Sacha Marcus <89188530+NBMSacha@users.noreply.github.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^1.35.6",
+    "@types/stream-chain": "^2.0.1",
+    "@types/stream-json": "^1.7.2",
+    "axios": "^0.27.2",
+    "colorette": "^2.0.19",
+    "ethers": "^5.6.9",
+    "https-proxy-agent": "^5.0.1",
+    "stream-chain": "^2.2.5",
+    "stream-json": "^1.7.4",
+    "web3": "^1.7.5"
+  }
+}
