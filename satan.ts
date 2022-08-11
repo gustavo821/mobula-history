@@ -7,6 +7,7 @@ import { pick } from "stream-json/filters/Pick";
 import { ignore } from "stream-json/filters/Ignore";
 import { streamArray } from "stream-json/streamers/StreamArray";
 
+import config from "./config";
 import fs from "fs";
 import { ethers } from "ethers";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -18,7 +19,7 @@ import axios from "axios";
 
 const supabase = createClient(
   "https://ylcxvfbmqzwinymcjlnx.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsY3h2ZmJtcXp3aW55bWNqbG54Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY1MTUwMTcyNiwiZXhwIjoxOTY3MDc3NzI2fQ.OOZZi7YNuX2NIGxri_7QeHtAOML5T5gwljK8HtipP8I"
+  config.SUPABASE_KEY as string
 );
 
 interface Token {
@@ -191,13 +192,10 @@ let currentAsset: any;
 
 const sendSlackMessage = async (channel: string, text: string) => {
   try {
-    await axios.post(
-      "https://hooks.slack.com/services/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",
-      {
-        channel,
-        text,
-      }
-    );
+    await axios.post(config.SLACK_HOOK as string, {
+      channel,
+      text,
+    });
   } catch (e) {
     console.warn(e);
   }
