@@ -17,6 +17,8 @@ import { DEAD_WALLETS, ERC20ABI, providers } from "./constants/crypto";
 import { AbiItem } from "web3-utils";
 import axios from "axios";
 
+const startDate = Date.now();
+
 const supabase = createClient(
   "https://ylcxvfbmqzwinymcjlnx.supabase.co",
   config.SUPABASE_KEY as string
@@ -130,7 +132,7 @@ const RPCLimits: {
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
     queriesLimit: 3,
-    maxRange: 2048,
+    maxRange: 248,
     timeout: 100000,
     timeoutPlus: 200,
   },
@@ -205,7 +207,7 @@ console.log = (...params) => {
   // console.info(new Date().toISOString(), ...params);
   if (currentAsset) {
     fs.appendFileSync(
-      "logs/" + currentAsset.name + ".logs",
+      "logs/" + currentAsset.name + startDate + ".logs",
       "\n[" + new Date().toISOString() + "] " + params.join(" ")
     );
   }
@@ -219,13 +221,8 @@ console.log = (...params) => {
       "contracts,total_supply_contracts,circulating_supply_addresses,blockchains,id,name"
     )
     .order("created_at", { ascending: false })
-    .lt("market_cap", 14_500_000)
-    // .gt("market_cap", 0)
-    .match({ tried: false })) as any;
-  // .match({ name: "Octaplex Network" })) as any;
-  // .match({ name: "Spartan Protocol" })) as any;
+    .match({ name: "Avalanche" })) as any;
   console.log(data, error);
-
   for (let i = 0; i < data.length; i++) {
     currentAsset = data[i];
 
@@ -234,7 +231,7 @@ console.log = (...params) => {
       .select("tried")
       .match({ id: currentAsset.id });
 
-    if (!upToDateAsset?.[0].tried) {
+    if (!upToDateAsset?.[0].tried || true) {
       await supabase
         .from("assets")
         .update({ tried: true })
@@ -1743,10 +1740,16 @@ async function loadOnChainData({
                       });
 
                       if (
-                        e.toString() == 'Error: Invalid JSON RPC response: ""'
+                        e.toString() ==
+                          'Error: Invalid JSON RPC response: ""' ||
+                        e.toString() ==
+                          'Error: Invalid JSON RPC response: {"size":0,"timeout":0}'
                       ) {
                         resolve("Empty");
-                      } else if (e.toString().includes("Forbidden")) {
+                      } else if (
+                        e.toString().includes("Forbidden") ||
+                        e.toString().includes("CONNECTION ERROR")
+                      ) {
                         resolve("Forbidden");
                       } else {
                         console.log(e.toString());

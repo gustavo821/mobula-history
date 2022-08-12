@@ -17,5 +17,8 @@
     "stream-chain": "^2.2.5",
     "stream-json": "^1.7.4",
     "web3": "^1.7.5"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.1"
   }
 }
