@@ -665,17 +665,21 @@ async function findAllPairs(
                 });
               } catch (e: any) {
                 console.log(red("Failed to push pair"));
-                console.log(e);
-                console.log(pair);
                 if (e.toString().includes("CONNECTION")) {
                   freshFailedPairs.push(pair);
+                } else {
+                  console.log(e);
+                  console.log(pair);
                 }
               }
               resolve(null);
             })
           );
         }
-        await Promise.all(pairsIterations);
+
+        for (let i = 0; i < pairsIterations.length; i += 1000) {
+          await Promise.all(pairsIterations.slice(i, i + 1000));
+        }
         console.log(
           "Done processing. Remaining failed pairs:" + freshFailedPairs.length
         );
