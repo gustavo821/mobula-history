@@ -246,7 +246,9 @@ console.log = (...params) => {
           "logs-dev-2",
           "Loading data for asset " + data[i].name
         );
-        console.info("Loading data for asset " + data[i].name);
+        console.info(
+          "Loading data for asset " + "(" + startDate + ") " + data[i].name
+        );
 
         if (!data[i].total_pairs || data[i].total_pairs.length === 0) {
           pairs = await findAllPairs(
