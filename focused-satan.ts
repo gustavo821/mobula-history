@@ -131,10 +131,10 @@ const RPCLimits: {
   },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
-    queriesLimit: 1,
-    maxRange: 248,
+    queriesLimit: 2,
+    maxRange: 75,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 20000,
   },
 };
 
@@ -380,16 +380,18 @@ console.log = (...params) => {
 
         let circulatingSupply = 0;
 
-        if (data[i].total_supply_contracts?.length > 0) {
-          const { circulatingSupply: bufferCirculatingSupply } =
-            await getCirculatingSupply(
-              data[i].total_supply_contracts,
-              data[i].circulating_supply_addresses,
-              data[i].contracts,
-              data[i].blockchains
-            );
+        if (false) {
+          if (data[i].total_supply_contracts?.length > 0) {
+            const { circulatingSupply: bufferCirculatingSupply } =
+              await getCirculatingSupply(
+                data[i].total_supply_contracts,
+                data[i].circulating_supply_addresses,
+                data[i].contracts,
+                data[i].blockchains
+              );
 
-          circulatingSupply = bufferCirculatingSupply;
+            circulatingSupply = bufferCirculatingSupply;
+          }
         }
 
         const {
@@ -658,7 +660,11 @@ async function findAllPairs(
                   priceUSD: 0,
                 });
               } catch (e: any) {
-                if (e.toString().includes("CONNECTION")) {
+                if (
+                  e.toString().includes("CONNECTION") ||
+                  e.toString().includes("TIMEOUT") ||
+                  e.toString().includes("timeout")
+                ) {
                   freshFailedPairs.push(pair);
                 } else {
                   console.log(e);
