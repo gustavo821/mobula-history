@@ -575,8 +575,12 @@ async function findAllPairs(
       let failedPairs: Pair[] = [];
 
       do {
+        console.log("Starting processing on pairs.");
+        const freshFailedPairs: Pair[] = [];
         const iteratedPairs =
           failedPairs.length === 0 ? maybePairs : failedPairs;
+
+        console.log("Iterated pairs:" + iteratedPairs.length);
         for (const pair of iteratedPairs) {
           pairsIterations.push(
             new Promise(async (resolve) => {
@@ -664,7 +668,7 @@ async function findAllPairs(
                 console.log(e);
                 console.log(pair);
                 if (e.toString().includes("CONNECTION")) {
-                  failedPairs.push(pair);
+                  freshFailedPairs.push(pair);
                 }
               }
               resolve(null);
@@ -672,6 +676,11 @@ async function findAllPairs(
           );
         }
         await Promise.all(pairsIterations);
+        console.log(
+          "Done processing. Remaining failed pairs:" + freshFailedPairs.length
+        );
+
+        failedPairs = freshFailedPairs;
       } while (failedPairs.length > 0);
 
       console.log(
