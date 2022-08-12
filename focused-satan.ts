@@ -250,148 +250,149 @@ console.log = (...params) => {
           "Loading data for asset " + "(" + startDate + ") " + data[i].name
         );
 
-        if (!data[i].total_pairs || data[i].total_pairs.length === 0) {
-          pairs = await findAllPairs(
-            proxies,
-            data[i].contracts || [],
-            data[i].blockchains || []
-          );
+        if (false) {
+          if (!data[i].total_pairs || data[i].total_pairs.length === 0) {
+            pairs = await findAllPairs(
+              proxies,
+              data[i].contracts || [],
+              data[i].blockchains || []
+            );
 
-          let allPairs: Pair[] = [];
+            let allPairs: Pair[] = [];
 
-          pairs.forEach((pair: Pair[]) => {
-            allPairs = allPairs.concat(pair);
-          });
+            pairs.forEach((pair: Pair[]) => {
+              allPairs = allPairs.concat(pair);
+            });
 
-          console.log(allPairs);
+            console.log(allPairs);
 
-          let existingPairs: {
-            address: string;
-            token0_id: string;
-            token1_id: string;
-          }[] = [];
+            let existingPairs: {
+              address: string;
+              token0_id: string;
+              token1_id: string;
+            }[] = [];
 
-          for (let j = 0; j < allPairs.length; j += 150) {
-            const { data: existingPairsBuffer } = (await supabase
-              .from("assets_pairs")
-              .select("address,token0_id,token1_id")
-              .in(
-                "address",
-                allPairs.slice(j, j + 150).map((pair) => pair.address)
-              )) as any;
-
-            console.log(allPairs.slice(j, j + 150).map((pair) => pair.address));
-
-            existingPairs = existingPairs.concat(existingPairsBuffer);
-          }
-
-          for (let j = 0; j < pairs.length; j++) {
-            for (let k = 0; k < pairs[j].length; k++) {
-              const entry = pairs[j][k];
-              const index = existingPairs
-                .map((entry) => entry.address)
-                .indexOf(entry.address);
+            for (let j = 0; j < allPairs.length; j += 150) {
+              const { data: existingPairsBuffer } = (await supabase
+                .from("assets_pairs")
+                .select("address,token0_id,token1_id")
+                .in(
+                  "address",
+                  allPairs.slice(j, j + 150).map((pair) => pair.address)
+                )) as any;
 
               console.log(
-                "========================================================"
+                allPairs.slice(j, j + 150).map((pair) => pair.address)
               );
-              console.log(entry, index);
 
-              /** Signifies that the address is inlcuded in the existing addresses */
-              if (index >= 0) {
-                console.log("The pair does exist, modifying.");
+              existingPairs = existingPairs.concat(existingPairsBuffer);
+            }
+
+            for (let j = 0; j < pairs.length; j++) {
+              for (let k = 0; k < pairs[j].length; k++) {
+                const entry = pairs[j][k];
+                const index = existingPairs
+                  .map((entry) => entry.address)
+                  .indexOf(entry.address);
+
                 console.log(
-                  await supabase
-                    .from("assets_pairs")
-                    .update({
+                  "========================================================"
+                );
+                console.log(entry, index);
+
+                /** Signifies that the address is inlcuded in the existing addresses */
+                if (index >= 0) {
+                  console.log("The pair does exist, modifying.");
+                  console.log(
+                    await supabase
+                      .from("assets_pairs")
+                      .update({
+                        token0_id:
+                          entry.token0.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : existingPairs[index].token0_id,
+                        token1_id:
+                          entry.token1.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : existingPairs[index].token1_id,
+                      })
+                      .match({ address: entry.address })
+                  );
+                } else {
+                  console.log("The pair does not exist, inserting.");
+
+                  console.log(
+                    await supabase.from("assets_pairs").insert({
+                      address: entry.address,
+                      token0_address: entry.token0.address,
+                      token0_type: entry.token0.type,
+                      token0_decimals: entry.token0.decimals,
+                      token0_priceUSD: 0,
                       token0_id:
                         entry.token0.address.toLowerCase() ==
                         data[i].contracts[j].toLowerCase()
                           ? data[i].id
-                          : existingPairs[index].token0_id,
+                          : null,
+                      token1_address: entry.token1.address,
+                      token1_type: entry.token1.type,
+                      token1_decimals: entry.token1.decimals,
+                      token1_priceUSD: 0,
                       token1_id:
                         entry.token1.address.toLowerCase() ==
                         data[i].contracts[j].toLowerCase()
                           ? data[i].id
-                          : existingPairs[index].token1_id,
+                          : null,
+                      pair_data: entry.pairData,
+                      created_at: entry.createdAt,
+                      blockchain: data[i].blockchains[j],
                     })
-                    .match({ address: entry.address })
-                );
-              } else {
-                console.log("The pair does not exist, inserting.");
-
-                console.log(
-                  await supabase.from("assets_pairs").insert({
-                    address: entry.address,
-                    token0_address: entry.token0.address,
-                    token0_type: entry.token0.type,
-                    token0_decimals: entry.token0.decimals,
-                    token0_priceUSD: 0,
-                    token0_id:
-                      entry.token0.address.toLowerCase() ==
-                      data[i].contracts[j].toLowerCase()
-                        ? data[i].id
-                        : null,
-                    token1_address: entry.token1.address,
-                    token1_type: entry.token1.type,
-                    token1_decimals: entry.token1.decimals,
-                    token1_priceUSD: 0,
-                    token1_id:
-                      entry.token1.address.toLowerCase() ==
-                      data[i].contracts[j].toLowerCase()
-                        ? data[i].id
-                        : null,
-                    pair_data: entry.pairData,
-                    created_at: entry.createdAt,
-                    blockchain: data[i].blockchains[j],
-                  })
-                );
+                  );
+                }
               }
             }
-          }
-        } else {
-          for (let j = 0; j < pairs.length; j++) {
-            pairs[pairs[j].blockchain] = {
-              address: pairs[j].address,
-              token0: {
-                address: pairs[j].token0_address,
-                type: pairs[j].token0_type,
-                decimals: pairs[j].token0_decimals,
-              },
-              token1: {
-                address: pairs[j].token1_address,
-                type: pairs[j].token1_type,
-                decimals: pairs[j].token1_decimals,
-              },
-              pairData: pairs[j].pair_data,
-              createdAt: pairs[j].created_at,
-              priceUSD:
-                pairs[j].token0_id == data[i].id
-                  ? pairs[j].token0_priceUSD
-                  : pairs[j].token1_priceUSD,
-            };
-          }
+          } else {
+            for (let j = 0; j < pairs.length; j++) {
+              pairs[pairs[j].blockchain] = {
+                address: pairs[j].address,
+                token0: {
+                  address: pairs[j].token0_address,
+                  type: pairs[j].token0_type,
+                  decimals: pairs[j].token0_decimals,
+                },
+                token1: {
+                  address: pairs[j].token1_address,
+                  type: pairs[j].token1_type,
+                  decimals: pairs[j].token1_decimals,
+                },
+                pairData: pairs[j].pair_data,
+                createdAt: pairs[j].created_at,
+                priceUSD:
+                  pairs[j].token0_id == data[i].id
+                    ? pairs[j].token0_priceUSD
+                    : pairs[j].token1_priceUSD,
+              };
+            }
 
-          const freshPairs: Pair[][] = [];
-          Object.keys(pairs).forEach((key) => {
-            freshPairs[data[i].indexOf(key)] = pairs[key];
-          });
+            const freshPairs: Pair[][] = [];
+            Object.keys(pairs).forEach((key) => {
+              freshPairs[data[i].indexOf(key)] = pairs[key];
+            });
+          }
         }
-
         let circulatingSupply = 0;
 
-        if (false) {
-          if (data[i].total_supply_contracts?.length > 0) {
-            const { circulatingSupply: bufferCirculatingSupply } =
-              await getCirculatingSupply(
-                data[i].total_supply_contracts,
-                data[i].circulating_supply_addresses,
-                data[i].contracts,
-                data[i].blockchains
-              );
+        if (data[i].total_supply_contracts?.length > 0) {
+          const { circulatingSupply: bufferCirculatingSupply } =
+            await getCirculatingSupply(
+              data[i].total_supply_contracts,
+              data[i].circulating_supply_addresses,
+              data[i].contracts,
+              data[i].blockchains
+            );
 
-            circulatingSupply = bufferCirculatingSupply;
-          }
+          circulatingSupply = bufferCirculatingSupply;
         }
 
         const {
