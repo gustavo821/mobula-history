@@ -91,8 +91,8 @@ const RPCLimits: {
   };
 } = {
   "BNB Smart Chain (BEP20)": {
-    queriesLimit: 0.5,
-    maxRange: 2000,
+    queriesLimit: 1,
+    maxRange: 500,
     timeout: 30000,
     timeoutPlus: 3000,
   },
@@ -1746,11 +1746,19 @@ async function loadOnChainData({
                       });
 
                       if (
-                        e.toString() == 'Error: Invalid JSON RPC response: ""'
+                        e.toString() ==
+                          'Error: Invalid JSON RPC response: ""' ||
+                        e.toString() ==
+                          'Error: Invalid JSON RPC response: {"size":0,"timeout":0}'
                       ) {
                         resolve("Empty");
-                      } else if (e.toString().includes("Forbidden")) {
+                      } else if (
+                        e.toString().includes("Forbidden") ||
+                        e.toString().includes("CONNECTION ERROR")
+                      ) {
                         resolve("Forbidden");
+                      } else if (e.toString().includes("CONNECTION TIMEOUT")) {
+                        resolve("Timeout");
                       } else {
                         console.log(e.toString());
                       }
