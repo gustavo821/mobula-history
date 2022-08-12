@@ -1538,8 +1538,14 @@ async function loadOnChainData({
   name: string;
   blockchain: Blockchain;
 }) {
+  console.log("Generating MagicWeb3");
   const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
-  const latestBlock = await magicWeb3.eth().getBlock("latest");
+  console.log("Fetching last block");
+  const normalWeb3 = new Web3(
+    new Web3.providers.HttpProvider(supportedRPCs[blockchain][0])
+  );
+  const latestBlock = await getForSure(normalWeb3.eth.getBlock("latest"));
+  console.log("Latest block: ", latestBlock.number);
   const iterationsNeeded =
     (latestBlock.number - genesis) /
     RPCLimits[blockchain].maxRange /
@@ -1753,6 +1759,8 @@ async function loadOnChainData({
                         e.toString().includes("CONNECTION ERROR")
                       ) {
                         resolve("Forbidden");
+                      } else if (e.toString().includes("CONNECTION TIMEOUT")) {
+                        resolve("Timeout");
                       } else {
                         console.log(e.toString());
                       }
@@ -1912,7 +1920,6 @@ async function pushData(logs: Log[], filename: string, last: boolean) {
     //   JSON.stringify(logs[i]) + (i == logs.length - 1 && last ? "" : ",")
     // );
 
-    console.log(i == logs.length - 1 && last ? "" : ",", i, logs.length);
     await new Promise((resolve) =>
       fs.appendFile(
         "logs/" + filename,
@@ -2033,4 +2040,16 @@ async function getCirculatingSupply(
   }
 
   return { circulatingSupply: Number(circulating_supply) };
+}
+
+async function getForSure(promise: Promise<any>) {
+  let success = false;
+  while (!success) {
+    try {
+      return await promise;
+    } catch (e) {
+      console.log(e);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  }
 }
