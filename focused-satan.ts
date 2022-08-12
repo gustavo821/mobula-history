@@ -1632,6 +1632,7 @@ async function loadOnChainData({
 
     let success = 0;
     let ok = 0;
+    let fail = 0;
 
     data = data.concat(
       (await Promise.all(calls)).map((entry, index) => {
@@ -1641,6 +1642,7 @@ async function loadOnChainData({
           return entry;
         } else {
           if (entry) ok++;
+          else fail++;
           return (
             k +
             index * RPCLimits[blockchain].maxRange +
@@ -1659,7 +1661,9 @@ async function loadOnChainData({
         success +
           " successful events found on this iteration (" +
           ok +
-          " replied calls)"
+          " replied calls) and " +
+          fail +
+          "fails."
       )
     );
 
