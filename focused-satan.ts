@@ -131,7 +131,7 @@ const RPCLimits: {
   },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
-    queriesLimit: 3,
+    queriesLimit: 1,
     maxRange: 248,
     timeout: 100000,
     timeoutPlus: 200,
@@ -296,10 +296,6 @@ console.log = (...params) => {
                 "========================================================"
               );
               console.log(entry, index);
-              console.log(existingPairs);
-              console.log(
-                "========================================================"
-              );
 
               /** Signifies that the address is inlcuded in the existing addresses */
               if (index >= 0) {
