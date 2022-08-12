@@ -100,39 +100,39 @@ const RPCLimits: {
     queriesLimit: 1,
     maxRange: 2000,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   Ethereum: {
     queriesLimit: 2,
     maxRange: 200,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   Fantom: {
     queriesLimit: 1,
     maxRange: 5000,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   Cronos: {
     queriesLimit: 1,
     maxRange: 2000,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   // 'Metis Andromeda': { queriesLimit: 50, maxRange: 20000 },
   Arbitrum: {
     queriesLimit: 3,
     maxRange: 3000,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
     queriesLimit: 3,
     maxRange: 2048,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
 };
 
@@ -380,6 +380,12 @@ console.log = (...params) => {
           const freshPairs: Pair[][] = [];
           Object.keys(pairs).forEach((key) => {
             freshPairs[data[i].indexOf(key)] = pairs[key];
+          });
+        }
+
+        if (pairs.length > 50) {
+          Object.keys(RPCLimits).forEach((key) => {
+            RPCLimits[key].maxRange = RPCLimits[key].maxRange / 10;
           });
         }
 
@@ -1671,6 +1677,8 @@ async function loadOnChainData({
 
     let bufferRange = RPCLimits[blockchain].maxRange;
     let iterations = 1;
+    let failedIterations = 0;
+
     while (needToRecall.length > 0) {
       // idée : au départ, diviseur maximum qu'on peut supporter.
       // Ensuite, on itère avec ce diviseur jusqu'à ce que le nouveau diviseur
@@ -1848,6 +1856,9 @@ async function loadOnChainData({
           broken
       );
 
+      if (success === 0) failedIterations++;
+      console.log("Exiting because stuck.");
+      if (failedIterations === 10) process.exit(10);
       data = data.concat(formattedEvents);
       iterations++;
     }

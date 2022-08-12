@@ -96,7 +96,7 @@ const RPCLimits: {
     queriesLimit: 0.5,
     maxRange: 2000,
     timeout: 30000,
-    timeoutPlus: 3000,
+    timeoutPlus: 10000,
   },
   Polygon: {
     queriesLimit: 1,
@@ -354,7 +354,10 @@ console.log = (...params) => {
           }
         } else {
           for (let j = 0; j < pairs.length; j++) {
-            pairs[pairs[j].blockchain] = {
+            if (!pairs[pairs[j].blockchain]) {
+              pairs[pairs[j].blockchain] = [];
+            }
+            pairs[pairs[j].blockchain].push({
               address: pairs[j].address,
               token0: {
                 address: pairs[j].token0_address,
@@ -372,10 +375,18 @@ console.log = (...params) => {
                 pairs[j].token0_id == data[i].id
                   ? pairs[j].token0_priceUSD
                   : pairs[j].token1_priceUSD,
-            };
+            });
           }
+
+          const freshPairs: Pair[][] = [];
+          Object.keys(pairs).forEach((key) => {
+            freshPairs[data[i].blockchains.indexOf(key)] = pairs[key];
+          });
+          pairs = freshPairs;
         }
         let circulatingSupply = 0;
+
+        console.log("Getting circulating supply.");
 
         if (data[i].total_supply_contracts?.length > 0) {
           const { circulatingSupply: bufferCirculatingSupply } =
