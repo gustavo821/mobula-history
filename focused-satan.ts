@@ -131,7 +131,7 @@ const RPCLimits: {
   },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
-    queriesLimit: 2,
+    queriesLimit: 1,
     maxRange: 75,
     timeout: 100000,
     timeoutPlus: 20000,
