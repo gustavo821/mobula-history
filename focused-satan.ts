@@ -626,8 +626,6 @@ async function findAllPairs(
                   .methods.decimals()
                   .call();
 
-                console.log(green("Pushing new pair"));
-
                 formattedPairs.push({
                   address:
                     "0x" +
@@ -664,7 +662,6 @@ async function findAllPairs(
                   priceUSD: 0,
                 });
               } catch (e: any) {
-                console.log(red("Failed to push pair"));
                 if (e.toString().includes("CONNECTION")) {
                   freshFailedPairs.push(pair);
                 } else {
