@@ -1633,19 +1633,26 @@ async function loadOnChainData({
     let success = 0;
     let ok = 0;
     let fail = 0;
+    let total = 0;
+    let nonentry = 0;
 
     console.log("Total calls: " + calls.length);
 
     data = data.concat(
       (await Promise.all(calls)).map((entry, index) => {
         if (index % 1000 === 0) console.log("Iterating" + index);
+        total++;
         // @ts-ignore
         if ((entry?.length || 0) > 0) {
           success++;
           return entry;
         } else {
-          if (entry) ok++;
-          else fail++;
+          nonentry++;
+          if (entry) {
+            ok++;
+          } else {
+            fail++;
+          }
           return (
             k +
             index * RPCLimits[blockchain].maxRange +
@@ -1666,7 +1673,11 @@ async function loadOnChainData({
           ok +
           " replied calls) and " +
           fail +
-          "fails."
+          "fails (total: " +
+          total +
+          ",nonentry: " +
+          nonentry +
+          ")"
       )
     );
 
