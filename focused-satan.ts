@@ -1634,8 +1634,11 @@ async function loadOnChainData({
     let ok = 0;
     let fail = 0;
 
+    console.log("Total calls: " + calls.length);
+
     data = data.concat(
       (await Promise.all(calls)).map((entry, index) => {
+        if (index % 1000 === 0) console.log("Iterating" + index);
         // @ts-ignore
         if ((entry?.length || 0) > 0) {
           success++;
