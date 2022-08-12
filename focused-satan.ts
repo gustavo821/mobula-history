@@ -522,16 +522,17 @@ async function findAllPairs(
     if (RPCLimits[blockchains[i]]) {
       const formattedPairs: Pair[] = [];
 
-      await loadOnChainData({
-        topics: [
-          createPairEvent,
-          "0x000000000000000000000000" + contracts[i].split("0x")[1],
-        ],
-        blockchain: blockchains[i],
-        genesis: 0,
-        proxies,
-        name: contracts[i] + "-" + "pairs0.json",
-      });
+      if (!(await dataLoaded(contracts[i] + "-" + "pairs0.json")))
+        await loadOnChainData({
+          topics: [
+            createPairEvent,
+            "0x000000000000000000000000" + contracts[i].split("0x")[1],
+          ],
+          blockchain: blockchains[i],
+          genesis: 0,
+          proxies,
+          name: contracts[i] + "-" + "pairs0.json",
+        });
 
       // const pairs0: Log[][] = JSON.parse(
       //   fs.readFileSync("logs/1658142489719.json", "utf-8")
@@ -2070,4 +2071,21 @@ async function getForSure(promise: Promise<any>) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
+}
+
+async function dataLoaded(filename: string) {
+  return new Promise((resolve) =>
+    fs.readFile("logs/" + filename, (err, data) => {
+      if (err) {
+        resolve(false);
+      } else {
+        try {
+          data = JSON.parse(data.toString());
+          resolve(true);
+        } catch (e) {
+          resolve(false);
+        }
+      }
+    })
+  );
 }
