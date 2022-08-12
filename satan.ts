@@ -92,7 +92,7 @@ const RPCLimits: {
 } = {
   "BNB Smart Chain (BEP20)": {
     queriesLimit: 1,
-    maxRange: 500,
+    maxRange: 1000,
     timeout: 30000,
     timeoutPlus: 3000,
   },
@@ -1548,9 +1548,11 @@ async function loadOnChainData({
     (latestBlock.number - genesis) /
     RPCLimits[blockchain].maxRange /
     RPCLimits[blockchain].queriesLimit /
-    (proxies.length * supportedRPCs[blockchain].length);
+    (proxies.length * Math.min(supportedRPCs[blockchain].length, 2));
 
   openDataFile(name);
+
+  console.log("Total operations needed:" + iterationsNeeded);
 
   for (
     let k = genesis;
@@ -1630,6 +1632,8 @@ async function loadOnChainData({
 
     let success = 0;
     let ok = 0;
+
+    console.log("Loading data from " + calls.length + " calls");
 
     data = data.concat(
       (await Promise.all(calls)).map((entry, index) => {
@@ -1754,7 +1758,8 @@ async function loadOnChainData({
                         resolve("Empty");
                       } else if (
                         e.toString().includes("Forbidden") ||
-                        e.toString().includes("CONNECTION ERROR")
+                        e.toString().includes("CONNECTION ERROR") ||
+                        e.toString().includes("limit")
                       ) {
                         resolve("Forbidden");
                       } else if (e.toString().includes("CONNECTION TIMEOUT")) {

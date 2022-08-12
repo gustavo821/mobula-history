@@ -538,17 +538,18 @@ async function findAllPairs(
       //   fs.readFileSync("logs/1658142489719.json", "utf-8")
       // );
 
-      await loadOnChainData({
-        topics: [
-          createPairEvent,
-          null,
-          "0x000000000000000000000000" + contracts[i].split("0x")[1],
-        ],
-        blockchain: blockchains[i],
-        genesis: 0,
-        proxies,
-        name: contracts[i] + "-" + "pairs1.json",
-      });
+      if (!(await dataLoaded(contracts[i] + "-" + "pairs1.json")))
+        await loadOnChainData({
+          topics: [
+            createPairEvent,
+            null,
+            "0x000000000000000000000000" + contracts[i].split("0x")[1],
+          ],
+          blockchain: blockchains[i],
+          genesis: 0,
+          proxies,
+          name: contracts[i] + "-" + "pairs1.json",
+        });
 
       // const pairs1: Log[][] = JSON.parse(
       //   fs.readFileSync("logs/1658140750541.json", "utf-8")
@@ -1551,7 +1552,7 @@ async function loadOnChainData({
     (latestBlock.number - genesis) /
     RPCLimits[blockchain].maxRange /
     RPCLimits[blockchain].queriesLimit /
-    (proxies.length * supportedRPCs[blockchain].length);
+    (proxies.length * Math.min(supportedRPCs[blockchain].length, 2));
 
   openDataFile(name);
 
@@ -2074,12 +2075,15 @@ async function getForSure(promise: Promise<any>) {
 }
 
 async function dataLoaded(filename: string) {
+  console.log('Trying to find "' + filename + '"');
   return new Promise((resolve) =>
     fs.readFile("logs/" + filename, "utf8", (err, data) => {
       if (err) {
+        console.log("File not found " + err);
         resolve(false);
       } else {
         try {
+          console.log("Found file");
           data = JSON.parse(data.toString());
           resolve(true);
         } catch (e) {
