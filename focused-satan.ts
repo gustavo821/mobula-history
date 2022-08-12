@@ -555,7 +555,7 @@ async function findAllPairs(
       //   fs.readFileSync("logs/1658140750541.json", "utf-8")
       // );
 
-      const maybePairs = JSON.parse(
+      let maybePairs = JSON.parse(
         fs.readFileSync(
           "logs/" + contracts[i] + "-" + "pairs0.json"
         ) as unknown as string
@@ -572,98 +572,107 @@ async function findAllPairs(
       console.log(contracts[i] + "-" + "pairs1.json");
 
       const pairsIterations: Promise<null>[] = [];
+      let failedPairs: Pair[] = [];
 
-      for (const pair of maybePairs) {
-        pairsIterations.push(
-          new Promise(async (resolve) => {
-            try {
-              const token0Address =
-                "0x" +
-                pair.topics[1]
-                  .split("0x000000000000000000000000")[1]
-                  .toLowerCase();
-
-              // const decimalsToken0 = await new ethers.Contract(
-              //   token0Address,
-              //   ["function decimals() public view returns(uint256)"],
-              //   new ethers.providers.JsonRpcProvider(
-              //     supportedRPCs[blockchains[i]][0]
-              //   )
-              // ).decimals();
-
-              /**
-               * This may look a bit off, but it's because as we're creating
-               * one instance per call, we need to randomize the proxy process.
-               */
-
-              const decimalsToken0 = await new MagicWeb3(
-                supportedRPCs[blockchains[i]][0],
-                [proxies[Math.floor(Math.random() * proxies.length)]]
-              )
-                .contract(ERC20ABI as AbiItem[], token0Address)
-                .methods.decimals()
-                .call();
-
-              const token1Address =
-                "0x" +
-                pair.topics[2]
-                  .split("0x000000000000000000000000")[1]
-                  .toLowerCase();
-
-              const decimalsToken1 = await new MagicWeb3(
-                supportedRPCs[blockchains[i]][0],
-                [proxies[Math.floor(Math.random() * proxies.length)]]
-              )
-                .contract(ERC20ABI as AbiItem[], token1Address)
-                .methods.decimals()
-                .call();
-
-              console.log(green("Pushing new pair"));
-
-              formattedPairs.push({
-                address:
+      do {
+        const iteratedPairs =
+          failedPairs.length === 0 ? maybePairs : failedPairs;
+        for (const pair of iteratedPairs) {
+          pairsIterations.push(
+            new Promise(async (resolve) => {
+              try {
+                const token0Address =
                   "0x" +
-                  pair.data.split("0x000000000000000000000000")[1].slice(0, 40),
-                token0: {
-                  address: token0Address,
-                  type: WETHAndStables[blockchains[i]].includes(token0Address)
-                    ? WETHAndStables[blockchains[i]][0] == token0Address
-                      ? "eth"
-                      : "stable"
-                    : "other",
-                  decimals: Number(decimalsToken0),
-                },
-                token1: {
-                  address: token1Address,
-                  type: WETHAndStables[blockchains[i]].includes(token1Address)
-                    ? WETHAndStables[blockchains[i]][0] == token1Address
-                      ? "eth"
-                      : "stable"
-                    : "other",
-                  decimals: Number(decimalsToken1),
-                },
-                pairData: {
-                  volumeToken0: 0,
-                  volumeToken1: 0,
-                  volumeUSD: 0,
-                  reserve0: 0 as unknown as bigint,
-                  reserve1: 0 as unknown as bigint,
-                  reserveUSD: 0,
-                },
-                createdAt: pair.blockNumber,
-                priceUSD: 0,
-              });
-            } catch (e) {
-              console.log(red("Failed to push pair"));
-              console.log(e);
-              console.log(pair);
-            }
-            resolve(null);
-          })
-        );
-      }
+                  pair.topics[1]
+                    .split("0x000000000000000000000000")[1]
+                    .toLowerCase();
 
-      await Promise.all(pairsIterations);
+                // const decimalsToken0 = await new ethers.Contract(
+                //   token0Address,
+                //   ["function decimals() public view returns(uint256)"],
+                //   new ethers.providers.JsonRpcProvider(
+                //     supportedRPCs[blockchains[i]][0]
+                //   )
+                // ).decimals();
+
+                /**
+                 * This may look a bit off, but it's because as we're creating
+                 * one instance per call, we need to randomize the proxy process.
+                 */
+
+                const decimalsToken0 = await new MagicWeb3(
+                  supportedRPCs[blockchains[i]][0],
+                  [proxies[Math.floor(Math.random() * proxies.length)]]
+                )
+                  .contract(ERC20ABI as AbiItem[], token0Address)
+                  .methods.decimals()
+                  .call();
+
+                const token1Address =
+                  "0x" +
+                  pair.topics[2]
+                    .split("0x000000000000000000000000")[1]
+                    .toLowerCase();
+
+                const decimalsToken1 = await new MagicWeb3(
+                  supportedRPCs[blockchains[i]][0],
+                  [proxies[Math.floor(Math.random() * proxies.length)]]
+                )
+                  .contract(ERC20ABI as AbiItem[], token1Address)
+                  .methods.decimals()
+                  .call();
+
+                console.log(green("Pushing new pair"));
+
+                formattedPairs.push({
+                  address:
+                    "0x" +
+                    pair.data
+                      .split("0x000000000000000000000000")[1]
+                      .slice(0, 40),
+                  token0: {
+                    address: token0Address,
+                    type: WETHAndStables[blockchains[i]].includes(token0Address)
+                      ? WETHAndStables[blockchains[i]][0] == token0Address
+                        ? "eth"
+                        : "stable"
+                      : "other",
+                    decimals: Number(decimalsToken0),
+                  },
+                  token1: {
+                    address: token1Address,
+                    type: WETHAndStables[blockchains[i]].includes(token1Address)
+                      ? WETHAndStables[blockchains[i]][0] == token1Address
+                        ? "eth"
+                        : "stable"
+                      : "other",
+                    decimals: Number(decimalsToken1),
+                  },
+                  pairData: {
+                    volumeToken0: 0,
+                    volumeToken1: 0,
+                    volumeUSD: 0,
+                    reserve0: 0 as unknown as bigint,
+                    reserve1: 0 as unknown as bigint,
+                    reserveUSD: 0,
+                  },
+                  createdAt: pair.blockNumber,
+                  priceUSD: 0,
+                });
+              } catch (e: any) {
+                console.log(red("Failed to push pair"));
+                console.log(e);
+                console.log(pair);
+                if (e.toString().includes("CONNECTION")) {
+                  failedPairs.push(pair);
+                }
+              }
+              resolve(null);
+            })
+          );
+        }
+        await Promise.all(pairsIterations);
+      } while (failedPairs.length > 0);
 
       console.log(
         "Formatted pairs for this blockchain : " + formattedPairs.length
