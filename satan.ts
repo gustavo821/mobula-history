@@ -221,7 +221,7 @@ console.log = (...params) => {
     .order("created_at", { ascending: false })
     .lt("market_cap", 14_500_000)
     // .gt("market_cap", 0)
-    .match({ tried: false })) as any;
+    .match({ tried: false, tracked: true })) as any;
   // .match({ name: "Octaplex Network" })) as any;
   // .match({ name: "Spartan Protocol" })) as any;
   console.log(data, error);
