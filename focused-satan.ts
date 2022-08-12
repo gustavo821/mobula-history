@@ -251,8 +251,8 @@ console.log = (...params) => {
         );
 
         if (
-          (false && !data[i].total_pairs) ||
-          data[i].total_pairs.length === 0
+          false &&
+          (!data[i].total_pairs || data[i].total_pairs.length === 0)
         ) {
           pairs = await findAllPairs(
             proxies,
