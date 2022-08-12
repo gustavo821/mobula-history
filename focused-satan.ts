@@ -374,11 +374,6 @@ console.log = (...params) => {
                   : pairs[j].token1_priceUSD,
             };
           }
-
-          const freshPairs: Pair[][] = [];
-          Object.keys(pairs).forEach((key) => {
-            freshPairs[data[i].indexOf(key)] = pairs[key];
-          });
         }
         let circulatingSupply = 0;
 
