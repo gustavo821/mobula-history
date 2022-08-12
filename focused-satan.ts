@@ -2075,7 +2075,7 @@ async function getForSure(promise: Promise<any>) {
 
 async function dataLoaded(filename: string) {
   return new Promise((resolve) =>
-    fs.readFile("logs/" + filename, (err, data) => {
+    fs.readFile("logs/" + filename, "utf8", (err, data) => {
       if (err) {
         resolve(false);
       } else {
@@ -2083,6 +2083,7 @@ async function dataLoaded(filename: string) {
           data = JSON.parse(data.toString());
           resolve(true);
         } catch (e) {
+          console.log("File not found" + e);
           resolve(false);
         }
       }
