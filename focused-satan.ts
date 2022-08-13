@@ -131,8 +131,8 @@ const RPCLimits: {
   },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
-    queriesLimit: 1,
-    maxRange: 75,
+    queriesLimit: 3,
+    maxRange: 2000,
     timeout: 100000,
     timeoutPlus: 20000,
   },
@@ -220,8 +220,7 @@ console.log = (...params) => {
     .select(
       "contracts,total_supply_contracts,circulating_supply_addresses,blockchains,id,name"
     )
-    .order("created_at", { ascending: false })
-    .match({ name: "Avalanche" })) as any;
+    .order("market_cap", { ascending: false })) as any;
   console.log(data, error);
   for (let i = 0; i < data.length; i++) {
     currentAsset = data[i];
@@ -231,7 +230,7 @@ console.log = (...params) => {
       .select("tried")
       .match({ id: currentAsset.id });
 
-    if (!upToDateAsset?.[0].tried || true) {
+    if (!upToDateAsset?.[0].tried) {
       await supabase
         .from("assets")
         .update({ tried: true })
@@ -250,10 +249,7 @@ console.log = (...params) => {
           "Loading data for asset " + "(" + startDate + ") " + data[i].name
         );
 
-        if (
-          false &&
-          (!data[i].total_pairs || data[i].total_pairs.length === 0)
-        ) {
+        if (!data[i].total_pairs || data[i].total_pairs.length === 0) {
           pairs = await findAllPairs(
             proxies,
             data[i].contracts || [],
@@ -385,6 +381,10 @@ console.log = (...params) => {
           pairs = freshPairs;
         }
         let circulatingSupply = 0;
+
+        sendSlackMessage("", "Done loading pairs for " + data[i].name);
+
+        process.exit(5);
 
         console.log("Getting circulating supply.");
 
@@ -1579,7 +1579,8 @@ async function loadOnChainData({
     (latestBlock.number - genesis) /
     RPCLimits[blockchain].maxRange /
     RPCLimits[blockchain].queriesLimit /
-    (proxies.length * Math.min(supportedRPCs[blockchain].length, 2));
+    (Math.max(proxies.length, 1) *
+      Math.min(supportedRPCs[blockchain].length, 2));
 
   openDataFile(name);
 
@@ -1728,7 +1729,7 @@ async function loadOnChainData({
         RPCLimits[blockchain].maxRange /
           2 /
           Math.ceil(
-            (proxies.length *
+            (Math.max(proxies.length, 1) *
               supportedRPCs[blockchain].length *
               RPCLimits[blockchain].queriesLimit) /
               needToRecall.length
