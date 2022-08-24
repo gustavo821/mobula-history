@@ -1,4 +1,6 @@
+import { createClient } from "@supabase/supabase-js";
 import { ethers } from "ethers";
+import config from "../config";
 
 export const DEAD_WALLETS = [
   "0x000000000000000000000000000000000000dEaD",
@@ -4093,3 +4095,103 @@ export const blocksBlockchains = [
     rpc: "https://rpc.ankr.com/arbitrum",
   },
 ];
+export async function getShardedPairsFromTokenId(id: number): Promise<any[]> {
+  const hexa = "0123456789abcdef";
+  const supabasePairs = await createPairsSupabaseClient();
+  const responses = [];
+  const finalArray: any[] = [];
+  const timeBefore = Date.now();
+  for (const hexaChar of hexa) {
+    responses.push(
+      new Promise(async (resolve) => {
+        let fetchedData = false;
+        while (!fetchedData) {
+          try {
+            const { data, error } = (await supabasePairs
+              .from(`0x${hexaChar}`)
+              .select("*")
+              .or(`token0_id.eq.${id},token1_id.eq.${id}`)) as any;
+
+            if (error) {
+              throw `Supabase => ${error.message}`;
+            }
+
+            for (const pair of data) {
+              finalArray.push(pair);
+            }
+            fetchedData = true;
+            resolve(null);
+          } catch (e) {
+            fetchedData = false;
+            console.error(`Error getShardedPairsFromTokenId: ${e}`);
+            await new Promise((r) => setTimeout(() => r(null), 1000));
+          }
+        }
+      })
+    );
+  }
+
+  await Promise.all(responses);
+  const timeAfter = Date.now();
+  console.log(
+    `getShardedPairsFromTokenId resolved 16 queries in ${
+      (timeAfter - timeBefore) / 1000
+    } sec`
+  );
+  return finalArray;
+}
+
+export async function getShardedPairsFromAddresses(
+  addresses: string[]
+): Promise<any[]> {
+  const hexa = "0123456789abcdef";
+  const supabasePairs = await createPairsSupabaseClient();
+  const responses = [];
+  const finalArray: any[] = [];
+  const timeBefore = Date.now();
+  for (const hexaChar of hexa) {
+    responses.push(
+      new Promise(async (resolve) => {
+        let fetchedData = false;
+        while (!fetchedData) {
+          try {
+            const { data, error } = (await supabasePairs
+              .from(`0x${hexaChar}`)
+              .select("*")
+              .in("address", addresses)) as any;
+
+            if (error) {
+              throw `Supabase => ${error.message}`;
+            }
+
+            for (const pair of data) {
+              finalArray.push(pair);
+            }
+            fetchedData = true;
+            resolve(null);
+          } catch (e) {
+            fetchedData = false;
+            console.error(`Error getShardedPairsFromTokenId: ${e}`);
+            await new Promise((r) => setTimeout(() => r(null), 1000));
+          }
+        }
+      })
+    );
+  }
+
+  await Promise.all(responses);
+  const timeAfter = Date.now();
+  console.log(
+    `getShardedPairsFromTokenId resolved 16 queries in ${
+      (timeAfter - timeBefore) / 1000
+    } sec`
+  );
+  return finalArray;
+}
+
+export const createPairsSupabaseClient = () => {
+  return createClient(
+    "https://ynyevwlgdolrcfxzvqhr.supabase.co",
+    config.SUPABASE_PAIRS_KEY
+  );
+};

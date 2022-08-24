@@ -11,11 +11,13 @@ dotenv.config({ path: path.resolve(__dirname, ".env") });
 interface ENV {
   SLACK_HOOK: string | undefined;
   SUPABASE_KEY: string | undefined;
+  SUPABASE_PAIRS_KEY: string | undefined;
 }
 
 interface Config {
   SLACK_HOOK: string;
   SUPABASE_KEY: string;
+  SUPABASE_PAIRS_KEY: string;
 }
 
 // Loading process.env as ENV interface
@@ -24,6 +26,7 @@ const getConfig = (): ENV => {
   return {
     SLACK_HOOK: process.env.SLACK_HOOK,
     SUPABASE_KEY: process.env.SUPABASE_KEY,
+    SUPABASE_PAIRS_KEY: process.env.SUPABASE_PAIRS_KEY,
   };
 };
 
