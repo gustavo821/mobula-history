@@ -13,7 +13,14 @@ import { ethers } from "ethers";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
 import { green, yellow, red, magenta } from "colorette";
-import { DEAD_WALLETS, ERC20ABI, providers } from "./constants/crypto";
+import {
+  createPairsSupabaseClient,
+  DEAD_WALLETS,
+  ERC20ABI,
+  getShardedPairsFromAddresses,
+  getShardedPairsFromTokenId,
+  providers,
+} from "./constants/crypto";
 import { AbiItem } from "web3-utils";
 import axios from "axios";
 
@@ -21,6 +28,8 @@ const supabase = createClient(
   "https://ylcxvfbmqzwinymcjlnx.supabase.co",
   config.SUPABASE_KEY as string
 );
+
+const supabasePairsClient = createPairsSupabaseClient();
 
 interface Token {
   address: string;
@@ -240,10 +249,7 @@ console.log = (...params) => {
         .update({ tried: true })
         .match({ id: data[i].id });
       if (data[i].blockchains && data[i].blockchains.length > 0) {
-        let { data: pairs } = (await supabase
-          .from("assets_pairs")
-          .select("*")
-          .or(`token0_id.eq.${data[i].id},token1_id.eq.${data[i].id}`)) as any;
+        let pairs = await getShardedPairsFromTokenId(data[i].id);
 
         await sendSlackMessage(
           "logs-dev-2",
@@ -273,13 +279,9 @@ console.log = (...params) => {
           }[] = [];
 
           for (let j = 0; j < allPairs.length; j += 150) {
-            const { data: existingPairsBuffer } = (await supabase
-              .from("assets_pairs")
-              .select("address,token0_id,token1_id")
-              .in(
-                "address",
-                allPairs.slice(j, j + 150).map((pair) => pair.address)
-              )) as any;
+            const existingPairsBuffer = await getShardedPairsFromAddresses(
+              allPairs.slice(j, j + 150).map((pair) => pair.address)
+            );
 
             console.log(allPairs.slice(j, j + 150).map((pair) => pair.address));
 
@@ -306,8 +308,8 @@ console.log = (...params) => {
               if (index >= 0) {
                 console.log("The pair does exist, modifying.");
                 console.log(
-                  await supabase
-                    .from("assets_pairs")
+                  await supabasePairsClient
+                    .from("0x" + entry.address.toLowerCase()[2])
                     .update({
                       token0_id:
                         entry.token0.address.toLowerCase() ==
@@ -326,30 +328,32 @@ console.log = (...params) => {
                 console.log("The pair does not exist, inserting.");
 
                 console.log(
-                  await supabase.from("assets_pairs").insert({
-                    address: entry.address,
-                    token0_address: entry.token0.address,
-                    token0_type: entry.token0.type,
-                    token0_decimals: entry.token0.decimals,
-                    token0_priceUSD: 0,
-                    token0_id:
-                      entry.token0.address.toLowerCase() ==
-                      data[i].contracts[j].toLowerCase()
-                        ? data[i].id
-                        : null,
-                    token1_address: entry.token1.address,
-                    token1_type: entry.token1.type,
-                    token1_decimals: entry.token1.decimals,
-                    token1_priceUSD: 0,
-                    token1_id:
-                      entry.token1.address.toLowerCase() ==
-                      data[i].contracts[j].toLowerCase()
-                        ? data[i].id
-                        : null,
-                    pair_data: entry.pairData,
-                    created_at: entry.createdAt,
-                    blockchain: data[i].blockchains[j],
-                  })
+                  await supabase
+                    .from("0x" + entry.address.toLowerCase()[2])
+                    .insert({
+                      address: entry.address,
+                      token0_address: entry.token0.address,
+                      token0_type: entry.token0.type,
+                      token0_decimals: entry.token0.decimals,
+                      token0_priceUSD: 0,
+                      token0_id:
+                        entry.token0.address.toLowerCase() ==
+                        data[i].contracts[j].toLowerCase()
+                          ? data[i].id
+                          : null,
+                      token1_address: entry.token1.address,
+                      token1_type: entry.token1.type,
+                      token1_decimals: entry.token1.decimals,
+                      token1_priceUSD: 0,
+                      token1_id:
+                        entry.token1.address.toLowerCase() ==
+                        data[i].contracts[j].toLowerCase()
+                          ? data[i].id
+                          : null,
+                      pair_data: entry.pairData,
+                      created_at: entry.createdAt,
+                      blockchain: data[i].blockchains[j],
+                    })
                 );
               }
             }
@@ -379,7 +383,7 @@ console.log = (...params) => {
 
           const freshPairs: Pair[][] = [];
           Object.keys(pairs).forEach((key) => {
-            freshPairs[data[i].indexOf(key)] = pairs[key];
+            freshPairs[data[i].indexOf(key)] = pairs[key as any];
           });
         }
 
@@ -1858,7 +1862,7 @@ async function loadOnChainData({
 
       if (success === 0) failedIterations++;
       console.log("Exiting because stuck.");
-      if (failedIterations === 10) process.exit(10);
+      // if (failedIterations === 10) process.exit(10);
       data = data.concat(formattedEvents);
       iterations++;
     }
