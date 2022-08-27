@@ -71,16 +71,16 @@ const supportedRPCs: { [index: string]: string[] } = {
   "BNB Smart Chain (BEP20)": [
     "https://bsc-dataseed.binance.org/",
     "https://bsc-dataseed2.binance.org/",
-    "https://bsc-dataseed3.binance.org/",
-    "https://bsc-dataseed4.binance.org/",
-    "https://bsc-dataseed1.defibit.io/",
-    "https://bsc-dataseed2.defibit.io/",
-    "https://bsc-dataseed3.defibit.io/",
-    "https://bsc-dataseed4.defibit.io/",
-    "https://bsc-dataseed1.ninicoin.io/",
-    "https://bsc-dataseed2.ninicoin.io/",
-    "https://bsc-dataseed3.ninicoin.io/",
-    "https://bsc-dataseed4.ninicoin.io/",
+    // "https://bsc-dataseed3.binance.org/",
+    // "https://bsc-dataseed4.binance.org/",
+    // "https://bsc-dataseed1.defibit.io/",
+    // "https://bsc-dataseed2.defibit.io/",
+    // "https://bsc-dataseed3.defibit.io/",
+    // "https://bsc-dataseed4.defibit.io/",
+    // "https://bsc-dataseed1.ninicoin.io/",
+    // "https://bsc-dataseed2.ninicoin.io/",
+    // "https://bsc-dataseed3.ninicoin.io/",
+    // "https://bsc-dataseed4.ninicoin.io/",
   ],
   Ethereum: ["https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"],
   Fantom: ["https://rpc.ftm.tools/"],
@@ -100,8 +100,8 @@ const RPCLimits: {
   };
 } = {
   "BNB Smart Chain (BEP20)": {
-    queriesLimit: 1,
-    maxRange: 1000,
+    queriesLimit: 0.5,
+    maxRange: 100,
     timeout: 30000,
     timeoutPlus: 3000,
   },
@@ -1703,6 +1703,7 @@ async function loadOnChainData({
       );
       const changingRange = bufferRange / 2 >= blocRange;
       bufferRange = changingRange ? Math.floor(bufferRange / 2) : bufferRange;
+      bufferRange = bufferRange === 0 ? 1 : bufferRange;
       console.log(changingRange ? "UPDATING Range" : "Not modifying range");
       console.log("Current block range : " + bufferRange);
       console.log(
