@@ -230,10 +230,10 @@ console.log = (...params) => {
     .order("created_at", { ascending: false })
     .lt("market_cap", 14_500_000)
     // .gt("market_cap", 0)
-    .match({ tried: false, tracked: true })) as any;
+    .match({ name: "MindToken" })) as any;
   // .match({ name: "Octaplex Network" })) as any;
   // .match({ name: "Spartan Protocol" })) as any;
-  console.log(data, error);
+  console.info(data, error);
 
   for (let i = 0; i < data.length; i++) {
     currentAsset = data[i];
@@ -249,7 +249,9 @@ console.log = (...params) => {
         .update({ tried: true })
         .match({ id: data[i].id });
       if (data[i].blockchains && data[i].blockchains.length > 0) {
+        console.log("Calling sharded pairs.");
         let pairs = await getShardedPairsFromTokenId(data[i].id);
+        console.log("Done calling sharded pairs.");
 
         await sendSlackMessage(
           "logs-dev-2",
@@ -308,52 +310,56 @@ console.log = (...params) => {
               if (index >= 0) {
                 console.log("The pair does exist, modifying.");
                 console.log(
-                  await supabasePairsClient
-                    .from("0x" + entry.address.toLowerCase()[2])
-                    .update({
-                      token0_id:
-                        entry.token0.address.toLowerCase() ==
-                        data[i].contracts[j].toLowerCase()
-                          ? data[i].id
-                          : existingPairs[index].token0_id,
-                      token1_id:
-                        entry.token1.address.toLowerCase() ==
-                        data[i].contracts[j].toLowerCase()
-                          ? data[i].id
-                          : existingPairs[index].token1_id,
-                    })
-                    .match({ address: entry.address })
+                  JSON.stringify(
+                    await supabasePairsClient
+                      .from("0x" + entry.address.toLowerCase()[2])
+                      .update({
+                        token0_id:
+                          entry.token0.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : existingPairs[index].token0_id,
+                        token1_id:
+                          entry.token1.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : existingPairs[index].token1_id,
+                      })
+                      .match({ address: entry.address })
+                  )
                 );
               } else {
                 console.log("The pair does not exist, inserting.");
 
                 console.log(
-                  await supabasePairsClient
-                    .from("0x" + entry.address.toLowerCase()[2])
-                    .insert({
-                      address: entry.address,
-                      token0_address: entry.token0.address,
-                      token0_type: entry.token0.type,
-                      token0_decimals: entry.token0.decimals,
-                      token0_priceUSD: 0,
-                      token0_id:
-                        entry.token0.address.toLowerCase() ==
-                        data[i].contracts[j].toLowerCase()
-                          ? data[i].id
-                          : null,
-                      token1_address: entry.token1.address,
-                      token1_type: entry.token1.type,
-                      token1_decimals: entry.token1.decimals,
-                      token1_priceUSD: 0,
-                      token1_id:
-                        entry.token1.address.toLowerCase() ==
-                        data[i].contracts[j].toLowerCase()
-                          ? data[i].id
-                          : null,
-                      pair_data: entry.pairData,
-                      created_at: entry.createdAt,
-                      blockchain: data[i].blockchains[j],
-                    })
+                  JSON.stringify(
+                    await supabasePairsClient
+                      .from("0x" + entry.address.toLowerCase()[2])
+                      .insert({
+                        address: entry.address,
+                        token0_address: entry.token0.address,
+                        token0_type: entry.token0.type,
+                        token0_decimals: entry.token0.decimals,
+                        token0_priceUSD: 0,
+                        token0_id:
+                          entry.token0.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : null,
+                        token1_address: entry.token1.address,
+                        token1_type: entry.token1.type,
+                        token1_decimals: entry.token1.decimals,
+                        token1_priceUSD: 0,
+                        token1_id:
+                          entry.token1.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : null,
+                        pair_data: entry.pairData,
+                        created_at: new Date(entry.createdAt).toISOString(),
+                        blockchain: data[i].blockchains[j],
+                      })
+                  )
                 );
               }
             }
@@ -560,9 +566,9 @@ async function findAllPairs(
         name: contracts[i] + "-" + "pairs1.json",
       });
 
-      // const pairs1: Log[][] = JSON.parse(
-      //   fs.readFileSync("logs/1658140750541.json", "utf-8")
-      // );
+      const pairs1: Log[][] = JSON.parse(
+        fs.readFileSync("logs/1658140750541.json", "utf-8")
+      );
 
       const maybePairs = JSON.parse(
         fs.readFileSync(
