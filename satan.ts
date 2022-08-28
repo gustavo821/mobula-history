@@ -230,7 +230,7 @@ console.log = (...params) => {
     .order("created_at", { ascending: false })
     .lt("market_cap", 14_500_000)
     // .gt("market_cap", 0)
-    .match({ name: "MindToken" })) as any;
+    .match({ tried: false })) as any;
   // .match({ name: "Octaplex Network" })) as any;
   // .match({ name: "Spartan Protocol" })) as any;
   console.info(data, error);
