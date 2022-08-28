@@ -101,7 +101,7 @@ const RPCLimits: {
 } = {
   "BNB Smart Chain (BEP20)": {
     queriesLimit: 0.5,
-    maxRange: 100,
+    maxRange: 1000,
     timeout: 30000,
     timeoutPlus: 3000,
   },
