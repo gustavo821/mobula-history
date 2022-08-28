@@ -328,7 +328,7 @@ console.log = (...params) => {
                 console.log("The pair does not exist, inserting.");
 
                 console.log(
-                  await supabase
+                  await supabasePairsClient
                     .from("0x" + entry.address.toLowerCase()[2])
                     .insert({
                       address: entry.address,
