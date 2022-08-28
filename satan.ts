@@ -533,32 +533,32 @@ async function findAllPairs(
     if (RPCLimits[blockchains[i]]) {
       const formattedPairs: Pair[] = [];
 
-      // await loadOnChainData({
-      //   topics: [
-      //     createPairEvent,
-      //     "0x000000000000000000000000" + contracts[i].split("0x")[1],
-      //   ],
-      //   blockchain: blockchains[i],
-      //   genesis: 0,
-      //   proxies,
-      //   name: contracts[i] + "-" + "pairs0.json",
-      // });
+      await loadOnChainData({
+        topics: [
+          createPairEvent,
+          "0x000000000000000000000000" + contracts[i].split("0x")[1],
+        ],
+        blockchain: blockchains[i],
+        genesis: 0,
+        proxies,
+        name: contracts[i] + "-" + "pairs0.json",
+      });
 
       // const pairs0: Log[][] = JSON.parse(
       //   fs.readFileSync("logs/1658142489719.json", "utf-8")
       // );
 
-      // await loadOnChainData({
-      //   topics: [
-      //     createPairEvent,
-      //     null,
-      //     "0x000000000000000000000000" + contracts[i].split("0x")[1],
-      //   ],
-      //   blockchain: blockchains[i],
-      //   genesis: 0,
-      //   proxies,
-      //   name: contracts[i] + "-" + "pairs1.json",
-      // });
+      await loadOnChainData({
+        topics: [
+          createPairEvent,
+          null,
+          "0x000000000000000000000000" + contracts[i].split("0x")[1],
+        ],
+        blockchain: blockchains[i],
+        genesis: 0,
+        proxies,
+        name: contracts[i] + "-" + "pairs1.json",
+      });
 
       // const pairs1: Log[][] = JSON.parse(
       //   fs.readFileSync("logs/1658140750541.json", "utf-8")
@@ -815,14 +815,14 @@ async function getMarketData(
         name: contracts[i] + "-" + "market.json",
       });
 
-      // await loadOnChainData({
-      //   topics: [[swapEvent, syncEvent]],
-      //   address: pairs[i].map((pair) => pair.address),
-      //   blockchain: blockchains[i],
-      //   genesis: tokenGenesis,
-      //   proxies,
-      //   name: contracts[i] + "-" + "market.json",
-      // });
+      await loadOnChainData({
+        topics: [[swapEvent, syncEvent]],
+        address: pairs[i].map((pair) => pair.address),
+        blockchain: blockchains[i],
+        genesis: tokenGenesis,
+        proxies,
+        name: contracts[i] + "-" + "market.json",
+      });
 
       // const data: Log[][] = JSON.parse(fs.readFileSync('logs/1657115237268.json', 'utf-8'));
       const pipeline = chain([
