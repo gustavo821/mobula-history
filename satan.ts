@@ -550,10 +550,6 @@ async function findAllPairs(
         name: contracts[i] + "-" + "pairs0.json",
       });
 
-      // const pairs0: Log[][] = JSON.parse(
-      //   fs.readFileSync("logs/1658142489719.json", "utf-8")
-      // );
-
       await loadOnChainData({
         topics: [
           createPairEvent,
@@ -565,11 +561,6 @@ async function findAllPairs(
         proxies,
         name: contracts[i] + "-" + "pairs1.json",
       });
-
-      const pairs1: Log[][] = JSON.parse(
-        fs.readFileSync("logs/1658140750541.json", "utf-8")
-      );
-
       const maybePairs = JSON.parse(
         fs.readFileSync(
           "logs/" + contracts[i] + "-" + "pairs0.json"
