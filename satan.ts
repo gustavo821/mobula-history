@@ -1681,6 +1681,7 @@ async function loadOnChainData({
     let bufferRange = RPCLimits[blockchain].maxRange;
     let iterations = 1;
     let failedIterations = 0;
+    let sliced: number = 0;
 
     while (needToRecall.length > 0) {
       // idée : au départ, diviseur maximum qu'on peut supporter.
@@ -1705,6 +1706,19 @@ async function loadOnChainData({
       bufferRange = bufferRange === 0 ? 1 : bufferRange;
       console.log(changingRange ? "UPDATING Range" : "Not modifying range");
       console.log("Current block range : " + bufferRange);
+
+      if (sliced === 1) {
+        needToRecall = needToRecall.slice(
+          0,
+          Math.ceil(needToRecall.length / 2)
+        );
+      } else if (sliced === 2) {
+        needToRecall = needToRecall.slice(
+          Math.floor(needToRecall.length / 2),
+          needToRecall.length
+        );
+      }
+
       console.log(
         yellow(
           "Recalling failed calls (" +
@@ -1861,8 +1875,19 @@ async function loadOnChainData({
       );
 
       if (success === 0) failedIterations++;
-      console.log("Exiting because stuck.");
-      // if (failedIterations === 10) process.exit(10);
+      if (failedIterations === 10) {
+        console.log("Looks like we are stuck... waiting 10 minutes.");
+        await new Promise((r) => setTimeout(r, 1000 * 60 * 10));
+        console.log("Setting sliced mode.");
+        sliced = 1;
+      }
+
+      if (sliced === 1) {
+        sliced = 2;
+      } else if (sliced === 2) {
+        sliced = 0;
+      }
+
       data = data.concat(formattedEvents);
       iterations++;
     }
