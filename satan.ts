@@ -197,7 +197,47 @@ const createPairEvent =
 const syncEvent =
   "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1";
 
+const restartSettings = {
+  block: parseInt(config.BLOCK) || 0,
+  restart: config.RESTART === "true",
+};
+
 let currentAsset: any;
+
+const shouldLoad = async (name: string) => {
+  if (!restartSettings.restart) return true;
+  if (fs.existsSync("logs/" + name)) {
+    try {
+      const lastChar = await readLastChar(name);
+      console.log("Red last char: " + lastChar);
+      return lastChar !== "}";
+    } catch (e) {
+      console.log("Error: " + e + " - should load.");
+      return true;
+    }
+  }
+  console.log("File does not exist - should load.");
+  return true;
+};
+
+const readLastChar = async (name: string) => {
+  return new Promise((resolve) => {
+    fs.stat("logs/" + name, function postStat(_, stats) {
+      fs.open("logs/" + name, "r", function postOpen(_, fd) {
+        fs.read(
+          fd,
+          Buffer.alloc(1),
+          0,
+          1,
+          stats.size - 1,
+          function postRead(_, __, buffer) {
+            resolve(buffer.toString("utf8"));
+          }
+        );
+      });
+    });
+  });
+};
 
 const sendSlackMessage = async (channel: string, text: string) => {
   try {
@@ -211,7 +251,6 @@ const sendSlackMessage = async (channel: string, text: string) => {
 };
 
 console.log = (...params) => {
-  // console.info(new Date().toISOString(), ...params);
   if (currentAsset) {
     fs.appendFileSync(
       "logs/" + currentAsset.name + ".logs",
@@ -222,15 +261,16 @@ console.log = (...params) => {
 
 (async () => {
   const proxies = await loadProxies(10);
+  console.log(restartSettings);
   const { data, error } = (await supabase
     .from("assets")
     .select(
       "contracts,total_supply_contracts,circulating_supply_addresses,blockchains,id,name"
     )
     .order("created_at", { ascending: false })
-    .lt("market_cap", 14_500_000)
+    // .lt("market_cap", 14_500_000)
     // .gt("market_cap", 0)
-    .match({ tried: false })) as any;
+    .match({ tried: false})) as any;
   // .match({ name: "Octaplex Network" })) as any;
   // .match({ name: "Spartan Protocol" })) as any;
   console.info(data, error);
@@ -248,6 +288,9 @@ console.log = (...params) => {
         .from("assets")
         .update({ tried: true })
         .match({ id: data[i].id });
+
+      console.log("Updated asset.");
+
       if (data[i].blockchains && data[i].blockchains.length > 0) {
         console.log("Calling sharded pairs.");
         let pairs = await getShardedPairsFromTokenId(data[i].id);
@@ -399,6 +442,8 @@ console.log = (...params) => {
           });
         }
 
+        console.log("Done with pair stuff.");
+
         let circulatingSupply = 0;
 
         if (data[i].total_supply_contracts?.length > 0) {
@@ -539,28 +584,33 @@ async function findAllPairs(
     if (RPCLimits[blockchains[i]]) {
       const formattedPairs: Pair[] = [];
 
-      await loadOnChainData({
-        topics: [
-          createPairEvent,
-          "0x000000000000000000000000" + contracts[i].split("0x")[1],
-        ],
-        blockchain: blockchains[i],
-        genesis: 0,
-        proxies,
-        name: contracts[i] + "-" + "pairs0.json",
-      });
+      if (await shouldLoad(contracts[i] + "-" + "pairs0.json")) {
+        await loadOnChainData({
+          topics: [
+            createPairEvent,
+            "0x000000000000000000000000" + contracts[i].split("0x")[1],
+          ],
+          blockchain: blockchains[i],
+          genesis: 0,
+          proxies,
+          name: contracts[i] + "-" + "pairs0.json",
+        });
+      }
 
-      await loadOnChainData({
-        topics: [
-          createPairEvent,
-          null,
-          "0x000000000000000000000000" + contracts[i].split("0x")[1],
-        ],
-        blockchain: blockchains[i],
-        genesis: 0,
-        proxies,
-        name: contracts[i] + "-" + "pairs1.json",
-      });
+      if (await shouldLoad(contracts[i] + "-" + "pairs1.json")) {
+        await loadOnChainData({
+          topics: [
+            createPairEvent,
+            null,
+            "0x000000000000000000000000" + contracts[i].split("0x")[1],
+          ],
+          blockchain: blockchains[i],
+          genesis: 0,
+          proxies,
+          name: contracts[i] + "-" + "pairs1.json",
+        });
+      }
+
       const maybePairs = JSON.parse(
         fs.readFileSync(
           "logs/" + contracts[i] + "-" + "pairs0.json"
@@ -812,14 +862,17 @@ async function getMarketData(
         name: contracts[i] + "-" + "market.json",
       });
 
-      await loadOnChainData({
-        topics: [[swapEvent, syncEvent]],
-        address: pairs[i].map((pair) => pair.address),
-        blockchain: blockchains[i],
-        genesis: tokenGenesis,
-        proxies,
-        name: contracts[i] + "-" + "market.json",
-      });
+      if (await shouldLoad(contracts[i] + "-" + "market.json")) {
+        console.log("Loading market data.");
+        await loadOnChainData({
+          topics: [[swapEvent, syncEvent]],
+          address: pairs[i].map((pair) => pair.address),
+          blockchain: blockchains[i],
+          genesis: tokenGenesis,
+          proxies,
+          name: contracts[i] + "-" + "market.json",
+        });
+      }
 
       // const data: Log[][] = JSON.parse(fs.readFileSync('logs/1657115237268.json', 'utf-8'));
       const pipeline = chain([
@@ -1548,6 +1601,12 @@ async function loadOnChainData({
   name: string;
   blockchain: Blockchain;
 }) {
+  console.log("Genesis : " + genesis);
+  if (restartSettings.block && restartSettings.block > genesis) {
+    genesis = restartSettings.block;
+    console.log("Updated genesis = " + genesis);
+  }
+
   const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
   const normalWeb3 = new Web3(
     new Web3.providers.HttpProvider(supportedRPCs[blockchain][0])
@@ -1559,7 +1618,11 @@ async function loadOnChainData({
     RPCLimits[blockchain].queriesLimit /
     (proxies.length * Math.min(supportedRPCs[blockchain].length, 2));
 
-  openDataFile(name);
+  if (!restartSettings.restart || !fs.existsSync("logs/" + name)) {
+    openDataFile(name);
+  } else {
+    console.log("Not opening data file as already starting.");
+  }
 
   console.log("Total operations needed:" + iterationsNeeded);
 

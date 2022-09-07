@@ -12,12 +12,16 @@ interface ENV {
   SLACK_HOOK: string | undefined;
   SUPABASE_KEY: string | undefined;
   SUPABASE_PAIRS_KEY: string | undefined;
+  BLOCK: string | undefined;
+  RESTART: string | undefined;
 }
 
 interface Config {
   SLACK_HOOK: string;
   SUPABASE_KEY: string;
   SUPABASE_PAIRS_KEY: string;
+  BLOCK: string;
+  RESTART: string;
 }
 
 // Loading process.env as ENV interface
@@ -27,6 +31,8 @@ const getConfig = (): ENV => {
     SLACK_HOOK: process.env.SLACK_HOOK,
     SUPABASE_KEY: process.env.SUPABASE_KEY,
     SUPABASE_PAIRS_KEY: process.env.SUPABASE_PAIRS_KEY,
+    BLOCK: process.env.BLOCK,
+    RESTART: process.env.RESTART,
   };
 };
 
