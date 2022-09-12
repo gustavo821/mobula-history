@@ -270,7 +270,7 @@ console.log = (...params) => {
     .order("created_at", { ascending: false })
     // .lt("market_cap", 14_500_000)
     // .gt("market_cap", 0)
-    .match({ tried: false})) as any;
+    .match({ tried: false })) as any;
   // .match({ name: "Octaplex Network" })) as any;
   // .match({ name: "Spartan Protocol" })) as any;
   console.info(data, error);
@@ -1607,7 +1607,14 @@ async function loadOnChainData({
     console.log("Updated genesis = " + genesis);
   }
 
-  const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
+  const magicWeb3 =
+    blockchain === "BNB Smart Chain (BEP20)"
+      ? new MagicWeb3(
+          "https://little-dawn-grass.bsc.quiknode.pro/92bfde323130bc080301fa8d7736efb153432158/",
+          [],
+          { proxies: false }
+        )
+      : new MagicWeb3(supportedRPCs[blockchain], proxies);
   const normalWeb3 = new Web3(
     new Web3.providers.HttpProvider(supportedRPCs[blockchain][0])
   );

@@ -9,11 +9,20 @@ export class MagicWeb3 {
   alert: boolean;
   index: number;
 
-  constructor(rpcs: string[] | string, proxies: string[] = [], alert = true) {
+  constructor(
+    rpcs: string[] | string,
+    proxies: string[] = [],
+    settings: { alert?: boolean; proxies?: boolean } = {
+      alert: false,
+      proxies: true,
+    }
+  ) {
     this.rpcs = typeof rpcs == "string" ? [rpcs] : rpcs;
-    this.alert = alert;
+    this.alert = settings.alert ?? true;
     this.proxies = proxies;
-    this.fetchProxies();
+    if (settings.proxies) {
+      this.fetchProxies();
+    }
     this.index = 0;
     // setInterval(() => this.fetchProxies(), 60000);
   }
@@ -25,14 +34,7 @@ export class MagicWeb3 {
     return new Web3(
       new (Web3HttpProvider as any)(
         this.rpcs[Math.floor(Math.random() * this.rpcs.length)],
-        {
-          keepAlive: true,
-          timeout: 20000, // milliseconds,
-          withCredentials: false,
-          agent: {
-            https: new HttpsProxyAgent(proxy),
-          },
-        }
+        (proxy ? { agent: { https: new HttpsProxyAgent(proxy) } } : {}) as any
       )
     ).eth;
   }
@@ -43,14 +45,7 @@ export class MagicWeb3 {
     const web3 = new Web3(
       new (Web3HttpProvider as any)(
         this.rpcs[Math.floor(Math.random() * this.rpcs.length)],
-        {
-          keepAlive: true,
-          timeout: 20000,
-          withCredentials: false,
-          agent: {
-            https: new HttpsProxyAgent(proxy),
-          },
-        }
+        (proxy ? { agent: { https: new HttpsProxyAgent(proxy) } } : {}) as any
       )
     );
     return new web3.eth.Contract(abi, address);
