@@ -1779,10 +1779,6 @@ async function loadOnChainData({
       console.log(changingRange ? "UPDATING Range" : "Not modifying range");
       console.log("Current block range : " + bufferRange);
 
-      await new Promise((resolve, reject) =>
-        setTimeout(resolve, 1000 * 60 * 3)
-      );
-
       if (sliced === 1) {
         needToRecall = needToRecall.slice(
           0,
@@ -1953,9 +1949,11 @@ async function loadOnChainData({
       if (success === 0) failedIterations++;
       if (failedIterations === 10) {
         console.log("Looks like we are stuck... waiting 10 minutes.");
-        await new Promise((r) => setTimeout(r, 1000 * 60 * 10));
-        console.log("Setting sliced mode.");
-        sliced = 1;
+        await supabase.from("assets").update({ tried: false }).match({ name });
+        process.exit(10);
+        // await new Promise((r) => setTimeout(r, 1000 * 60 * 10));
+        // console.log("Setting sliced mode.");
+        // sliced = 1;
       }
 
       if (sliced === 1) {
