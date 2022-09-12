@@ -597,6 +597,8 @@ async function findAllPairs(
         });
       }
 
+      await new Promise((resolve) => setTimeout(resolve, 60 * 1000));
+
       if (await shouldLoad(contracts[i] + "-" + "pairs1.json")) {
         await loadOnChainData({
           topics: [
@@ -1857,7 +1859,6 @@ async function loadOnChainData({
                         e.toString().includes("CONNECTION ERROR") ||
                         e.toString().includes("limit")
                       ) {
-                        console.log(e.toString());
                         resolve("Forbidden");
                       } else if (e.toString().includes("CONNECTION TIMEOUT")) {
                         resolve("Timeout");
