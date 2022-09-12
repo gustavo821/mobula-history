@@ -584,21 +584,6 @@ async function findAllPairs(
     if (RPCLimits[blockchains[i]]) {
       const formattedPairs: Pair[] = [];
 
-      if (await shouldLoad(contracts[i] + "-" + "pairs0.json")) {
-        await loadOnChainData({
-          topics: [
-            createPairEvent,
-            "0x000000000000000000000000" + contracts[i].split("0x")[1],
-          ],
-          blockchain: blockchains[i],
-          genesis: 0,
-          proxies,
-          name: contracts[i] + "-" + "pairs0.json",
-        });
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 60 * 1000));
-
       if (await shouldLoad(contracts[i] + "-" + "pairs1.json")) {
         await loadOnChainData({
           topics: [
@@ -610,6 +595,21 @@ async function findAllPairs(
           genesis: 0,
           proxies,
           name: contracts[i] + "-" + "pairs1.json",
+        });
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 60 * 1000 * 5));
+
+      if (await shouldLoad(contracts[i] + "-" + "pairs0.json")) {
+        await loadOnChainData({
+          topics: [
+            createPairEvent,
+            "0x000000000000000000000000" + contracts[i].split("0x")[1],
+          ],
+          blockchain: blockchains[i],
+          genesis: 0,
+          proxies,
+          name: contracts[i] + "-" + "pairs0.json",
         });
       }
 
