@@ -598,7 +598,7 @@ async function findAllPairs(
         });
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 60 * 1000 * 5));
+      // await new Promise((resolve) => setTimeout(resolve, 60 * 1000 * 5));
 
       if (await shouldLoad(contracts[i] + "-" + "pairs0.json")) {
         await loadOnChainData({
