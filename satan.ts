@@ -273,7 +273,7 @@ console.log = (...params) => {
     .match({ tried: false })) as any;
   // .match({ name: "Octaplex Network" })) as any;
   // .match({ name: "Spartan Protocol" })) as any;
-  console.info(data, error);
+  // console.info(data, error);
 
   for (let i = 0; i < data.length; i++) {
     currentAsset = data[i];
