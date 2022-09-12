@@ -1857,6 +1857,7 @@ async function loadOnChainData({
                         e.toString().includes("CONNECTION ERROR") ||
                         e.toString().includes("limit")
                       ) {
+                        console.log(e.toString());
                         resolve("Forbidden");
                       } else if (e.toString().includes("CONNECTION TIMEOUT")) {
                         resolve("Timeout");
