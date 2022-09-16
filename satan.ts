@@ -306,7 +306,8 @@ console.log = (...params) => {
           pairs = await findAllPairs(
             proxies,
             data[i].contracts || [],
-            data[i].blockchains || []
+            data[i].blockchains || [],
+            data[i].id
           );
 
           let allPairs: Pair[] = [];
@@ -469,7 +470,8 @@ console.log = (...params) => {
           data[i].contracts,
           data[i].blockchains,
           pairs,
-          circulatingSupply
+          circulatingSupply,
+          data[i].id
         );
 
         const bufferMarketCapHistory =
@@ -575,7 +577,8 @@ console.log = (...params) => {
 async function findAllPairs(
   proxies: string[],
   contracts: string[],
-  blockchains: Blockchain[]
+  blockchains: Blockchain[],
+  id: number
 ): Promise<Pair[][]> {
   const crossChainFormattedPairs: any = [];
   console.log(proxies.length, "proxies loaded.");
@@ -595,6 +598,7 @@ async function findAllPairs(
           genesis: 0,
           proxies,
           name: contracts[i] + "-" + "pairs1.json",
+          id
         });
       }
 
@@ -610,6 +614,7 @@ async function findAllPairs(
           genesis: 0,
           proxies,
           name: contracts[i] + "-" + "pairs0.json",
+          id
         });
       }
 
@@ -740,7 +745,8 @@ async function getMarketData(
   contracts: string[],
   blockchains: Blockchain[],
   pairs: Pair[][],
-  circulatingSupply: number
+  circulatingSupply: number,
+  id: number
 ): Promise<{
   liquidity_history: [number, number][];
   market_cap_history: [number, number][];
@@ -873,6 +879,7 @@ async function getMarketData(
           genesis: tokenGenesis,
           proxies,
           name: contracts[i] + "-" + "market.json",
+          id
         });
       }
 
@@ -1595,6 +1602,7 @@ async function loadOnChainData({
   proxies,
   blockchain,
   name,
+  id
 }: {
   address?: string | string[] | undefined;
   topics?: (string | string[] | null)[] | undefined;
@@ -1602,6 +1610,7 @@ async function loadOnChainData({
   proxies: string[];
   name: string;
   blockchain: Blockchain;
+  id: number
 }) {
   console.log("Genesis : " + genesis);
   if (restartSettings.block && restartSettings.block > genesis) {
@@ -1949,7 +1958,7 @@ async function loadOnChainData({
       if (success === 0) failedIterations++;
       if (failedIterations === 10) {
         console.log("Looks like we are stuck... waiting 10 minutes.");
-        await supabase.from("assets").update({ tried: false }).match({ name });
+        await supabase.from("assets").update({ tried: false }).match({ id });
         process.exit(10);
         // await new Promise((r) => setTimeout(r, 1000 * 60 * 10));
         // console.log("Setting sliced mode.");
