@@ -239,6 +239,36 @@ const readLastChar = async (name: string) => {
   });
 };
 
+const readLastBlock = async (name: string) => {
+  try {
+    const end = (await new Promise((resolve) => {
+      fs.stat("logs/" + name, function postStat(_, stats) {
+        fs.open("logs/" + name, "r", function postOpen(_, fd) {
+          fs.read(
+            fd,
+            Buffer.alloc(1000),
+            0,
+            1000,
+            stats.size - 1000,
+            function postRead(_, __, buffer) {
+              resolve(buffer.toString("utf8"));
+            }
+          );
+        });
+      });
+    })) as string;
+
+    const block = end.split('"blockNumber":')[1].split(",")[0];
+    if (!isNaN(parseInt(block))) {
+      return parseInt(block);
+    } else {
+      return 0;
+    }
+  } catch (e) {
+    return 0;
+  }
+};
+
 const sendSlackMessage = async (channel: string, text: string) => {
   try {
     await axios.post(config.SLACK_HOOK as string, {
@@ -588,6 +618,9 @@ async function findAllPairs(
       const formattedPairs: Pair[] = [];
 
       if (await shouldLoad(contracts[i] + "-" + "pairs1.json")) {
+        const lastBlock = await readLastBlock(
+          contracts[i] + "-" + "pairs1.json"
+        );
         await loadOnChainData({
           topics: [
             createPairEvent,
@@ -595,26 +628,30 @@ async function findAllPairs(
             "0x000000000000000000000000" + contracts[i].split("0x")[1],
           ],
           blockchain: blockchains[i],
-          genesis: 0,
+          genesis: lastBlock,
           proxies,
           name: contracts[i] + "-" + "pairs1.json",
-          id
+          id,
         });
       }
 
       // await new Promise((resolve) => setTimeout(resolve, 60 * 1000 * 5));
 
       if (await shouldLoad(contracts[i] + "-" + "pairs0.json")) {
+        const lastBlock = await readLastBlock(
+          contracts[i] + "-" + "pairs0.json"
+        );
+
         await loadOnChainData({
           topics: [
             createPairEvent,
             "0x000000000000000000000000" + contracts[i].split("0x")[1],
           ],
           blockchain: blockchains[i],
-          genesis: 0,
+          genesis: lastBlock,
           proxies,
           name: contracts[i] + "-" + "pairs0.json",
-          id
+          id,
         });
       }
 
@@ -872,14 +909,18 @@ async function getMarketData(
 
       if (await shouldLoad(contracts[i] + "-" + "market.json")) {
         console.log("Loading market data.");
+        const lastBlock = await readLastBlock(
+          contracts[i] + "-" + "market.json"
+        );
+
         await loadOnChainData({
           topics: [[swapEvent, syncEvent]],
           address: pairs[i].map((pair) => pair.address),
           blockchain: blockchains[i],
-          genesis: tokenGenesis,
+          genesis: Math.max(tokenGenesis, lastBlock),
           proxies,
           name: contracts[i] + "-" + "market.json",
-          id
+          id,
         });
       }
 
@@ -1602,7 +1643,7 @@ async function loadOnChainData({
   proxies,
   blockchain,
   name,
-  id
+  id,
 }: {
   address?: string | string[] | undefined;
   topics?: (string | string[] | null)[] | undefined;
@@ -1610,7 +1651,7 @@ async function loadOnChainData({
   proxies: string[];
   name: string;
   blockchain: Blockchain;
-  id: number
+  id: number;
 }) {
   console.log("Genesis : " + genesis);
   if (restartSettings.block && restartSettings.block > genesis) {
