@@ -221,54 +221,54 @@ const shouldLoad = async (name: string) => {
 };
 
 const readLastChar = async (name: string) => {
-  if (fs.existsSync("logs/" + name)) {
-    return new Promise((resolve) => {
-      fs.stat("logs/" + name, function postStat(_, stats) {
-        fs.open("logs/" + name, "r", function postOpen(_, fd) {
-          fs.read(
-            fd,
-            Buffer.alloc(1),
-            0,
-            1,
-            stats.size - 1,
-            function postRead(_, __, buffer) {
-              resolve(buffer.toString("utf8"));
-            }
-          );
-        });
+  return new Promise((resolve) => {
+    fs.stat("logs/" + name, function postStat(_, stats) {
+      fs.open("logs/" + name, "r", function postOpen(_, fd) {
+        fs.read(
+          fd,
+          Buffer.alloc(1),
+          0,
+          1,
+          stats.size - 1,
+          function postRead(_, __, buffer) {
+            resolve(buffer.toString("utf8"));
+          }
+        );
       });
     });
-  } else {
-    return 0;
-  }
+  });
 };
 
 const readLastBlock = async (name: string) => {
-  try {
-    const end = (await new Promise((resolve) => {
-      fs.stat("logs/" + name, function postStat(_, stats) {
-        fs.open("logs/" + name, "r", function postOpen(_, fd) {
-          fs.read(
-            fd,
-            Buffer.alloc(1000),
-            0,
-            1000,
-            stats.size - 1000,
-            function postRead(_, __, buffer) {
-              resolve(buffer.toString("utf8"));
-            }
-          );
+  if (fs.existsSync("logs/" + name)) {
+    try {
+      const end = (await new Promise((resolve) => {
+        fs.stat("logs/" + name, function postStat(_, stats) {
+          fs.open("logs/" + name, "r", function postOpen(_, fd) {
+            fs.read(
+              fd,
+              Buffer.alloc(1000),
+              0,
+              1000,
+              stats.size - 1000,
+              function postRead(_, __, buffer) {
+                resolve(buffer.toString("utf8"));
+              }
+            );
+          });
         });
-      });
-    })) as string;
+      })) as string;
 
-    const block = end.split('"blockNumber":')[1].split(",")[0];
-    if (!isNaN(parseInt(block))) {
-      return parseInt(block);
-    } else {
+      const block = end.split('"blockNumber":')[1].split(",")[0];
+      if (!isNaN(parseInt(block))) {
+        return parseInt(block);
+      } else {
+        return 0;
+      }
+    } catch (e) {
       return 0;
     }
-  } catch (e) {
+  } else {
     return 0;
   }
 };
