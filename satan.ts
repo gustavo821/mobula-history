@@ -221,22 +221,26 @@ const shouldLoad = async (name: string) => {
 };
 
 const readLastChar = async (name: string) => {
-  return new Promise((resolve) => {
-    fs.stat("logs/" + name, function postStat(_, stats) {
-      fs.open("logs/" + name, "r", function postOpen(_, fd) {
-        fs.read(
-          fd,
-          Buffer.alloc(1),
-          0,
-          1,
-          stats.size - 1,
-          function postRead(_, __, buffer) {
-            resolve(buffer.toString("utf8"));
-          }
-        );
+  if (fs.existsSync("logs/" + name)) {
+    return new Promise((resolve) => {
+      fs.stat("logs/" + name, function postStat(_, stats) {
+        fs.open("logs/" + name, "r", function postOpen(_, fd) {
+          fs.read(
+            fd,
+            Buffer.alloc(1),
+            0,
+            1,
+            stats.size - 1,
+            function postRead(_, __, buffer) {
+              resolve(buffer.toString("utf8"));
+            }
+          );
+        });
       });
     });
-  });
+  } else {
+    return 0;
+  }
 };
 
 const readLastBlock = async (name: string) => {
