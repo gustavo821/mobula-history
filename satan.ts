@@ -1666,7 +1666,7 @@ async function loadOnChainData({
   const magicWeb3 =
     blockchain === "BNB Smart Chain (BEP20)"
       ? new MagicWeb3(
-          "https://little-dawn-grass.bsc.quiknode.pro/92bfde323130bc080301fa8d7736efb153432158/",
+          "https://still-chaotic-sky.bsc.quiknode.pro/71637101939dda390799c7191441d9edc02bf28f/",
           [],
           { proxies: false }
         )
