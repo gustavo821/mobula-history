@@ -304,9 +304,9 @@ console.log = (...params) => {
     .order("created_at", { ascending: false })
     // .lt("market_cap", 14_500_000)
     // .gt("market_cap", 0)
-    // .match({ tried: false })) as any;
+    .match({ tried: false })) as any;
     // .match({ name: "Octaplex Network" })) as any;
-    .match({ name: "ISLAMICOIN" })) as any;
+    // .match({ name: "ISLAMICOIN" })) as any;
   // console.info(data, error);
 
   for (let i = 0; i < data.length; i++) {
