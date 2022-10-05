@@ -304,9 +304,9 @@ console.log = (...params) => {
     .order("created_at", { ascending: false })
     // .lt("market_cap", 14_500_000)
     // .gt("market_cap", 0)
-    .match({ tried: false })) as any;
-  // .match({ name: "Octaplex Network" })) as any;
-  // .match({ name: "Spartan Protocol" })) as any;
+    // .match({ tried: false })) as any;
+    // .match({ name: "Octaplex Network" })) as any;
+    .match({ name: "ISLAMICOIN" })) as any;
   // console.info(data, error);
 
   for (let i = 0; i < data.length; i++) {
@@ -1666,7 +1666,7 @@ async function loadOnChainData({
   const magicWeb3 =
     blockchain === "BNB Smart Chain (BEP20)"
       ? new MagicWeb3(
-          "https://still-chaotic-sky.bsc.quiknode.pro/71637101939dda390799c7191441d9edc02bf28f/",
+          "https://little-dawn-grass.bsc.quiknode.pro/92bfde323130bc080301fa8d7736efb153432158/",
           [],
           { proxies: false }
         )
