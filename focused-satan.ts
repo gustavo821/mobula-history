@@ -55,7 +55,8 @@ interface Pair {
 }
 
 type Blockchain =
-  | "Arbitrum"
+  // | "Arbitrum"
+  // |
   | "Aurora"
   | "Avalanche C-Chain"
   | "BNB Smart Chain (BEP20)"
@@ -88,7 +89,7 @@ const supportedRPCs: { [index: string]: string[] } = {
   Cronos: ["https://evm-cronos.crypto.org"],
   "Metis Andromeda": ["https://andromeda.metis.io/owner1088"],
   Aurora: ["https://mainnet.aurora.dev"],
-  Arbitrum: ["https://rpc.ankr.com/arbitrum"],
+  // Arbitrum: ["https://rpc.ankr.com/arbitrum"],
 };
 
 const RPCLimits: {
@@ -130,12 +131,12 @@ const RPCLimits: {
     timeoutPlus: 2000,
   },
   // 'Metis Andromeda': { queriesLimit: 50, maxRange: 20000 },
-  Arbitrum: {
-    queriesLimit: 0.1,
-    maxRange: 100,
-    timeout: 100000,
-    timeoutPlus: 2000,
-  },
+  // Arbitrum: {
+  //   queriesLimit: 0.1,
+  //   maxRange: 100,
+  //   timeout: 100000,
+  //   timeoutPlus: 2000,
+  // },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
     queriesLimit: 0.1,
@@ -171,11 +172,11 @@ const WETHAndStables: { [index: string]: string[] } = {
     "0xc21223249ca28397b4b6541dffaecc539bff0c59",
     "0x66e428c3f67a68878562e79a0234c1f83c208770",
   ],
-  Arbitrum: [
-    "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
-    "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
-    "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
-  ],
+  // Arbitrum: [
+  //   "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+  //   "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+  //   "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+  // ],
   "Avalanche C-Chain": [
     "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
     "0xc7198437980c041c805a1edcba50c1ce5db95118",
