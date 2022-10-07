@@ -936,7 +936,7 @@ async function getMarketData(
     if (RPCLimits[blockchains[i]]) {
       // console.log(pairs, i);
       const blocks = blockMap.get(blockchains[i])!.blocks;
-      const tokenGenesis = Math.min(...pairs[i].map((pair) => pair.createdAt));
+      const tokenGenesis = 0; // HOTFIX: createdAt is broken. Math.min(...pairs[i].map((pair) => pair.createdAt));
       console.log({
         topics: [[swapEvent, syncEvent]],
         address: pairs[i].map((pair) => pair.address),

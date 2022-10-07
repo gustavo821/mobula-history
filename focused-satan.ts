@@ -941,21 +941,25 @@ async function getMarketData(
     if (RPCLimits[blockchains[i]]) {
       // console.log(pairs, i);
       const blocks = blockMap.get(blockchains[i])!.blocks;
-      const tokenGenesis = Math.min(...pairs[i].map((pair) => pair.createdAt));
-      console.log({
-        topics: [[swapEvent, syncEvent]],
-        address: pairs[i].map((pair) => pair.address),
-        blockchain: blockchains[i],
-        genesis: tokenGenesis,
-        proxies,
-        name: contracts[i] + "-" + "market.json",
-      });
+      const tokenGenesis = 0; // HOTFIX: createdAt is broken. Math.min(...pairs[i].map((pair) => pair.createdAt));
+      console.log(
+        JSON.stringify({
+          topics: [[swapEvent, syncEvent]],
+          address: pairs[i].map((pair) => pair.address),
+          blockchain: blockchains[i],
+          genesis: tokenGenesis,
+          proxies: proxies.length,
+          name: contracts[i] + "-" + "market.json",
+        })
+      );
 
       if (await shouldLoad(contracts[i] + "-" + "market.json")) {
         console.log("Loading market data.");
         const lastBlock = await readLastBlock(
           contracts[i] + "-" + "market.json"
         );
+
+        console.log(lastBlock, tokenGenesis);
 
         await loadOnChainData({
           topics: [[swapEvent, syncEvent]],
