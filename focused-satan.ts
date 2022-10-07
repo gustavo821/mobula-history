@@ -309,6 +309,8 @@ console.log = (...params) => {
     .match({ name: "Bitcoin" })) as any;
   // console.info(data, error);
 
+  console.info(!data, error);
+
   for (let i = 0; i < data.length; i++) {
     currentAsset = data[i];
 
@@ -317,7 +319,7 @@ console.log = (...params) => {
       .select("tried")
       .match({ id: currentAsset.id });
 
-    if (!upToDateAsset?.[0].tried) {
+    if (!upToDateAsset?.[0].tried || true) {
       await supabase
         .from("assets")
         .update({ tried: true })
