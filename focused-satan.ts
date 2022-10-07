@@ -13,16 +13,23 @@ import { ethers } from "ethers";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
 import { green, yellow, red, magenta } from "colorette";
-import { DEAD_WALLETS, ERC20ABI, providers } from "./constants/crypto";
+import {
+  createPairsSupabaseClient,
+  DEAD_WALLETS,
+  ERC20ABI,
+  getShardedPairsFromAddresses,
+  getShardedPairsFromTokenId,
+  providers,
+} from "./constants/crypto";
 import { AbiItem } from "web3-utils";
 import axios from "axios";
-
-const startDate = Date.now();
 
 const supabase = createClient(
   "https://ylcxvfbmqzwinymcjlnx.supabase.co",
   config.SUPABASE_KEY as string
 );
+
+const supabasePairsClient = createPairsSupabaseClient();
 
 interface Token {
   address: string;
@@ -64,16 +71,16 @@ const supportedRPCs: { [index: string]: string[] } = {
   "BNB Smart Chain (BEP20)": [
     "https://bsc-dataseed.binance.org/",
     "https://bsc-dataseed2.binance.org/",
-    "https://bsc-dataseed3.binance.org/",
-    "https://bsc-dataseed4.binance.org/",
-    "https://bsc-dataseed1.defibit.io/",
-    "https://bsc-dataseed2.defibit.io/",
-    "https://bsc-dataseed3.defibit.io/",
-    "https://bsc-dataseed4.defibit.io/",
-    "https://bsc-dataseed1.ninicoin.io/",
-    "https://bsc-dataseed2.ninicoin.io/",
-    "https://bsc-dataseed3.ninicoin.io/",
-    "https://bsc-dataseed4.ninicoin.io/",
+    // "https://bsc-dataseed3.binance.org/",
+    // "https://bsc-dataseed4.binance.org/",
+    // "https://bsc-dataseed1.defibit.io/",
+    // "https://bsc-dataseed2.defibit.io/",
+    // "https://bsc-dataseed3.defibit.io/",
+    // "https://bsc-dataseed4.defibit.io/",
+    // "https://bsc-dataseed1.ninicoin.io/",
+    // "https://bsc-dataseed2.ninicoin.io/",
+    // "https://bsc-dataseed3.ninicoin.io/",
+    // "https://bsc-dataseed4.ninicoin.io/",
   ],
   Ethereum: ["https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"],
   Fantom: ["https://rpc.ftm.tools/"],
@@ -94,47 +101,47 @@ const RPCLimits: {
 } = {
   "BNB Smart Chain (BEP20)": {
     queriesLimit: 0.5,
-    maxRange: 2000,
+    maxRange: 1000,
     timeout: 30000,
-    timeoutPlus: 10000,
+    timeoutPlus: 3000,
   },
   Polygon: {
     queriesLimit: 1,
     maxRange: 2000,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   Ethereum: {
     queriesLimit: 2,
     maxRange: 200,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   Fantom: {
     queriesLimit: 1,
     maxRange: 5000,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   Cronos: {
     queriesLimit: 1,
     maxRange: 2000,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   // 'Metis Andromeda': { queriesLimit: 50, maxRange: 20000 },
   Arbitrum: {
     queriesLimit: 3,
     maxRange: 3000,
     timeout: 100000,
-    timeoutPlus: 200,
+    timeoutPlus: 2000,
   },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
     queriesLimit: 3,
-    maxRange: 2000,
+    maxRange: 2048,
     timeout: 100000,
-    timeoutPlus: 20000,
+    timeoutPlus: 2000,
   },
 };
 
@@ -190,7 +197,81 @@ const createPairEvent =
 const syncEvent =
   "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1";
 
+const restartSettings = {
+  block: parseInt(config.BLOCK) || 0,
+  restart: config.RESTART === "true",
+};
+
 let currentAsset: any;
+
+const shouldLoad = async (name: string) => {
+  if (!restartSettings.restart) return true;
+  if (fs.existsSync("logs/" + name)) {
+    try {
+      const lastChar = await readLastChar(name);
+      console.log("Red last char: " + lastChar);
+      return lastChar !== "}";
+    } catch (e) {
+      console.log("Error: " + e + " - should load.");
+      return true;
+    }
+  }
+  console.log("File does not exist - should load.");
+  return true;
+};
+
+const readLastChar = async (name: string) => {
+  return new Promise((resolve) => {
+    fs.stat("logs/" + name, function postStat(_, stats) {
+      fs.open("logs/" + name, "r", function postOpen(_, fd) {
+        fs.read(
+          fd,
+          Buffer.alloc(1),
+          0,
+          1,
+          stats.size - 1,
+          function postRead(_, __, buffer) {
+            resolve(buffer.toString("utf8"));
+          }
+        );
+      });
+    });
+  });
+};
+
+const readLastBlock = async (name: string) => {
+  if (fs.existsSync("logs/" + name)) {
+    try {
+      const end = (await new Promise((resolve) => {
+        fs.stat("logs/" + name, function postStat(_, stats) {
+          fs.open("logs/" + name, "r", function postOpen(_, fd) {
+            fs.read(
+              fd,
+              Buffer.alloc(1000),
+              0,
+              1000,
+              stats.size - 1000,
+              function postRead(_, __, buffer) {
+                resolve(buffer.toString("utf8"));
+              }
+            );
+          });
+        });
+      })) as string;
+
+      const block = end.split('"blockNumber":')[1].split(",")[0];
+      if (!isNaN(parseInt(block))) {
+        return parseInt(block);
+      } else {
+        return 0;
+      }
+    } catch (e) {
+      return 0;
+    }
+  } else {
+    return 0;
+  }
+};
 
 const sendSlackMessage = async (channel: string, text: string) => {
   try {
@@ -204,10 +285,9 @@ const sendSlackMessage = async (channel: string, text: string) => {
 };
 
 console.log = (...params) => {
-  // console.info(new Date().toISOString(), ...params);
   if (currentAsset) {
     fs.appendFileSync(
-      "logs/" + currentAsset.name + startDate + ".logs",
+      "logs/" + currentAsset.name + ".logs",
       "\n[" + new Date().toISOString() + "] " + params.join(" ")
     );
   }
@@ -215,13 +295,20 @@ console.log = (...params) => {
 
 (async () => {
   const proxies = await loadProxies(10);
+  console.log(restartSettings);
   const { data, error } = (await supabase
     .from("assets")
     .select(
       "contracts,total_supply_contracts,circulating_supply_addresses,blockchains,id,name"
     )
-    .order("market_cap", { ascending: false })) as any;
-  console.log(data, error);
+    .order("created_at", { ascending: false })
+    // .lt("market_cap", 14_500_000)
+    // .gt("market_cap", 0)
+    // .match({ tried: false })) as any;
+    // .match({ name: "Octaplex Network" })) as any;
+    .match({ name: "Bitcoin" })) as any;
+  // console.info(data, error);
+
   for (let i = 0; i < data.length; i++) {
     currentAsset = data[i];
 
@@ -235,25 +322,29 @@ console.log = (...params) => {
         .from("assets")
         .update({ tried: true })
         .match({ id: data[i].id });
+
+      console.log("Updated asset.");
+
       if (data[i].blockchains && data[i].blockchains.length > 0) {
-        let { data: pairs } = (await supabase
-          .from("assets_pairs")
-          .select("*")
-          .or(`token0_id.eq.${data[i].id},token1_id.eq.${data[i].id}`)) as any;
+        console.log("Calling sharded pairs.");
+        let pairs = await getShardedPairsFromTokenId(data[i].id);
+        console.log("Done calling sharded pairs.");
 
         await sendSlackMessage(
           "logs-dev-2",
           "Loading data for asset " + data[i].name
         );
-        console.info(
-          "Loading data for asset " + "(" + startDate + ") " + data[i].name
-        );
+        console.info("Loading data for asset " + data[i].name);
 
-        if (!data[i].total_pairs || data[i].total_pairs.length === 0) {
+        if (
+          (!data[i].total_pairs || data[i].total_pairs.length === 0) &&
+          false
+        ) {
           pairs = await findAllPairs(
             proxies,
             data[i].contracts || [],
-            data[i].blockchains || []
+            data[i].blockchains || [],
+            data[i].id
           );
 
           let allPairs: Pair[] = [];
@@ -271,13 +362,9 @@ console.log = (...params) => {
           }[] = [];
 
           for (let j = 0; j < allPairs.length; j += 150) {
-            const { data: existingPairsBuffer } = (await supabase
-              .from("assets_pairs")
-              .select("address,token0_id,token1_id")
-              .in(
-                "address",
-                allPairs.slice(j, j + 150).map((pair) => pair.address)
-              )) as any;
+            const existingPairsBuffer = await getShardedPairsFromAddresses(
+              allPairs.slice(j, j + 150).map((pair) => pair.address)
+            );
 
             console.log(allPairs.slice(j, j + 150).map((pair) => pair.address));
 
@@ -295,98 +382,133 @@ console.log = (...params) => {
                 "========================================================"
               );
               console.log(entry, index);
+              console.log(existingPairs);
+              console.log(
+                "========================================================"
+              );
 
               /** Signifies that the address is inlcuded in the existing addresses */
               if (index >= 0) {
                 console.log("The pair does exist, modifying.");
                 console.log(
-                  await supabase
-                    .from("assets_pairs")
-                    .update({
-                      token0_id:
-                        entry.token0.address.toLowerCase() ==
-                        data[i].contracts[j].toLowerCase()
-                          ? data[i].id
-                          : existingPairs[index].token0_id,
-                      token1_id:
-                        entry.token1.address.toLowerCase() ==
-                        data[i].contracts[j].toLowerCase()
-                          ? data[i].id
-                          : existingPairs[index].token1_id,
-                    })
-                    .match({ address: entry.address })
+                  JSON.stringify(
+                    await supabasePairsClient
+                      .from("0x" + entry.address.toLowerCase()[2])
+                      .update({
+                        token0_id:
+                          entry.token0.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : existingPairs[index].token0_id,
+                        token1_id:
+                          entry.token1.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : existingPairs[index].token1_id,
+                      })
+                      .match({ address: entry.address })
+                  )
                 );
               } else {
                 console.log("The pair does not exist, inserting.");
 
                 console.log(
-                  await supabase.from("assets_pairs").insert({
-                    address: entry.address,
-                    token0_address: entry.token0.address,
-                    token0_type: entry.token0.type,
-                    token0_decimals: entry.token0.decimals,
-                    token0_priceUSD: 0,
-                    token0_id:
-                      entry.token0.address.toLowerCase() ==
-                      data[i].contracts[j].toLowerCase()
-                        ? data[i].id
-                        : null,
-                    token1_address: entry.token1.address,
-                    token1_type: entry.token1.type,
-                    token1_decimals: entry.token1.decimals,
-                    token1_priceUSD: 0,
-                    token1_id:
-                      entry.token1.address.toLowerCase() ==
-                      data[i].contracts[j].toLowerCase()
-                        ? data[i].id
-                        : null,
-                    pair_data: entry.pairData,
-                    created_at: entry.createdAt,
-                    blockchain: data[i].blockchains[j],
-                  })
+                  JSON.stringify(
+                    await supabasePairsClient
+                      .from("0x" + entry.address.toLowerCase()[2])
+                      .insert({
+                        address: entry.address,
+                        token0_address: entry.token0.address,
+                        token0_type: entry.token0.type,
+                        token0_decimals: entry.token0.decimals,
+                        token0_priceUSD: 0,
+                        token0_id:
+                          entry.token0.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : null,
+                        token1_address: entry.token1.address,
+                        token1_type: entry.token1.type,
+                        token1_decimals: entry.token1.decimals,
+                        token1_priceUSD: 0,
+                        token1_id:
+                          entry.token1.address.toLowerCase() ==
+                          data[i].contracts[j].toLowerCase()
+                            ? data[i].id
+                            : null,
+                        pair_data: entry.pairData,
+                        created_at: new Date(entry.createdAt).toISOString(),
+                        blockchain: data[i].blockchains[j],
+                      })
+                  )
                 );
               }
             }
           }
         } else {
           for (let j = 0; j < pairs.length; j++) {
-            if (!pairs[pairs[j].blockchain]) {
-              pairs[pairs[j].blockchain] = [];
+            if (pairs[pairs[j].blockchain]) {
+              pairs[pairs[j].blockchain].push({
+                address: pairs[j].address,
+                token0: {
+                  address: pairs[j].token0_address,
+                  type: pairs[j].token0_type,
+                  decimals: pairs[j].token0_decimals,
+                },
+                token1: {
+                  address: pairs[j].token1_address,
+                  type: pairs[j].token1_type,
+                  decimals: pairs[j].token1_decimals,
+                },
+                pairData: pairs[j].pair_data,
+                createdAt: pairs[j].created_at,
+                priceUSD:
+                  pairs[j].token0_id == data[i].id
+                    ? pairs[j].token0_priceUSD
+                    : pairs[j].token1_priceUSD,
+              });
+            } else {
+              pairs[pairs[j].blockchain] = [
+                {
+                  address: pairs[j].address,
+                  token0: {
+                    address: pairs[j].token0_address,
+                    type: pairs[j].token0_type,
+                    decimals: pairs[j].token0_decimals,
+                  },
+                  token1: {
+                    address: pairs[j].token1_address,
+                    type: pairs[j].token1_type,
+                    decimals: pairs[j].token1_decimals,
+                  },
+                  pairData: pairs[j].pair_data,
+                  createdAt: pairs[j].created_at,
+                  priceUSD:
+                    pairs[j].token0_id == data[i].id
+                      ? pairs[j].token0_priceUSD
+                      : pairs[j].token1_priceUSD,
+                },
+              ];
             }
-            pairs[pairs[j].blockchain].push({
-              address: pairs[j].address,
-              token0: {
-                address: pairs[j].token0_address,
-                type: pairs[j].token0_type,
-                decimals: pairs[j].token0_decimals,
-              },
-              token1: {
-                address: pairs[j].token1_address,
-                type: pairs[j].token1_type,
-                decimals: pairs[j].token1_decimals,
-              },
-              pairData: pairs[j].pair_data,
-              createdAt: pairs[j].created_at,
-              priceUSD:
-                pairs[j].token0_id == data[i].id
-                  ? pairs[j].token0_priceUSD
-                  : pairs[j].token1_priceUSD,
-            });
           }
 
           const freshPairs: Pair[][] = [];
           Object.keys(pairs).forEach((key) => {
-            freshPairs[data[i].blockchains.indexOf(key)] = pairs[key];
+            freshPairs[data[i].blockchains.indexOf(key)] = pairs[key as any];
           });
+
           pairs = freshPairs;
         }
+
+        if (pairs.length > 50) {
+          Object.keys(RPCLimits).forEach((key) => {
+            RPCLimits[key].maxRange = RPCLimits[key].maxRange / 10;
+          });
+        }
+
+        console.log("Done with pair stuff.");
+
         let circulatingSupply = 0;
-
-        sendSlackMessage("", "Done loading pairs for " + data[i].name);
-
-        process.exit(5);
-
-        console.log("Getting circulating supply.");
 
         if (data[i].total_supply_contracts?.length > 0) {
           const { circulatingSupply: bufferCirculatingSupply } =
@@ -411,7 +533,8 @@ console.log = (...params) => {
           data[i].contracts,
           data[i].blockchains,
           pairs,
-          circulatingSupply
+          circulatingSupply,
+          data[i].id
         );
 
         const bufferMarketCapHistory =
@@ -517,7 +640,8 @@ console.log = (...params) => {
 async function findAllPairs(
   proxies: string[],
   contracts: string[],
-  blockchains: Blockchain[]
+  blockchains: Blockchain[],
+  id: number
 ): Promise<Pair[][]> {
   const crossChainFormattedPairs: any = [];
   console.log(proxies.length, "proxies loaded.");
@@ -526,23 +650,10 @@ async function findAllPairs(
     if (RPCLimits[blockchains[i]]) {
       const formattedPairs: Pair[] = [];
 
-      if (!(await dataLoaded(contracts[i] + "-" + "pairs0.json")))
-        await loadOnChainData({
-          topics: [
-            createPairEvent,
-            "0x000000000000000000000000" + contracts[i].split("0x")[1],
-          ],
-          blockchain: blockchains[i],
-          genesis: 0,
-          proxies,
-          name: contracts[i] + "-" + "pairs0.json",
-        });
-
-      // const pairs0: Log[][] = JSON.parse(
-      //   fs.readFileSync("logs/1658142489719.json", "utf-8")
-      // );
-
-      if (!(await dataLoaded(contracts[i] + "-" + "pairs1.json")))
+      if (await shouldLoad(contracts[i] + "-" + "pairs1.json")) {
+        const lastBlock = await readLastBlock(
+          contracts[i] + "-" + "pairs1.json"
+        );
         await loadOnChainData({
           topics: [
             createPairEvent,
@@ -550,16 +661,34 @@ async function findAllPairs(
             "0x000000000000000000000000" + contracts[i].split("0x")[1],
           ],
           blockchain: blockchains[i],
-          genesis: 0,
+          genesis: lastBlock,
           proxies,
           name: contracts[i] + "-" + "pairs1.json",
+          id,
         });
+      }
 
-      // const pairs1: Log[][] = JSON.parse(
-      //   fs.readFileSync("logs/1658140750541.json", "utf-8")
-      // );
+      // await new Promise((resolve) => setTimeout(resolve, 60 * 1000 * 5));
 
-      let maybePairs = JSON.parse(
+      if (await shouldLoad(contracts[i] + "-" + "pairs0.json")) {
+        const lastBlock = await readLastBlock(
+          contracts[i] + "-" + "pairs0.json"
+        );
+
+        await loadOnChainData({
+          topics: [
+            createPairEvent,
+            "0x000000000000000000000000" + contracts[i].split("0x")[1],
+          ],
+          blockchain: blockchains[i],
+          genesis: lastBlock,
+          proxies,
+          name: contracts[i] + "-" + "pairs0.json",
+          id,
+        });
+      }
+
+      const maybePairs = JSON.parse(
         fs.readFileSync(
           "logs/" + contracts[i] + "-" + "pairs0.json"
         ) as unknown as string
@@ -576,16 +705,13 @@ async function findAllPairs(
       console.log(contracts[i] + "-" + "pairs1.json");
 
       const pairsIterations: Promise<null>[] = [];
-      let failedPairs: Pair[] = [];
 
-      do {
-        console.log("Starting processing on pairs.");
-        const freshFailedPairs: Pair[] = [];
-        const iteratedPairs =
-          failedPairs.length === 0 ? maybePairs : failedPairs;
-
-        console.log("Iterated pairs:" + iteratedPairs.length);
-        for (const pair of iteratedPairs) {
+      for (let zbi = 0; zbi < maybePairs.length; zbi += 500) {
+        console.log("Iterating pairs " + zbi + "-" + (zbi + 500));
+        for (const pair of maybePairs.slice(
+          zbi,
+          Math.min(zbi + 500, maybePairs.length)
+        )) {
           pairsIterations.push(
             new Promise(async (resolve) => {
               try {
@@ -630,6 +756,8 @@ async function findAllPairs(
                   .methods.decimals()
                   .call();
 
+                console.log(green("Pushing new pair"));
+
                 formattedPairs.push({
                   address:
                     "0x" +
@@ -665,32 +793,18 @@ async function findAllPairs(
                   createdAt: pair.blockNumber,
                   priceUSD: 0,
                 });
-              } catch (e: any) {
-                if (
-                  e.toString().includes("CONNECTION") ||
-                  e.toString().includes("TIMEOUT") ||
-                  e.toString().includes("timeout")
-                ) {
-                  freshFailedPairs.push(pair);
-                } else {
-                  console.log(e);
-                  console.log(pair);
-                }
+              } catch (e) {
+                console.log(red("Failed to push pair"));
+                console.log(e);
+                console.log(JSON.stringify(pair));
               }
               resolve(null);
             })
           );
         }
 
-        for (let i = 0; i < pairsIterations.length; i += 1000) {
-          await Promise.all(pairsIterations.slice(i, i + 1000));
-        }
-        console.log(
-          "Done processing. Remaining failed pairs:" + freshFailedPairs.length
-        );
-
-        failedPairs = freshFailedPairs;
-      } while (failedPairs.length > 0);
+        await Promise.all(pairsIterations);
+      }
 
       console.log(
         "Formatted pairs for this blockchain : " + formattedPairs.length
@@ -709,7 +823,8 @@ async function getMarketData(
   contracts: string[],
   blockchains: Blockchain[],
   pairs: Pair[][],
-  circulatingSupply: number
+  circulatingSupply: number,
+  id: number
 ): Promise<{
   liquidity_history: [number, number][];
   market_cap_history: [number, number][];
@@ -779,13 +894,14 @@ async function getMarketData(
     .select("*")) as {
     data: {
       price: [number, number][];
+      recent_price: [number, number][];
       name: Blockchain;
     }[];
   };
 
   const priceMap = new Map(
     eth_history.map((entry) => {
-      return [entry.name, entry.price];
+      return [entry.name, entry.price.concat(entry.recent_price)];
     })
   );
 
@@ -821,9 +937,10 @@ async function getMarketData(
 
   for (let i = 0; i < contracts.length; i++) {
     if (RPCLimits[blockchains[i]]) {
+      // console.log(pairs, i);
       const blocks = blockMap.get(blockchains[i])!.blocks;
       const tokenGenesis = Math.min(...pairs[i].map((pair) => pair.createdAt));
-      console.log(pairs, {
+      console.log({
         topics: [[swapEvent, syncEvent]],
         address: pairs[i].map((pair) => pair.address),
         blockchain: blockchains[i],
@@ -831,14 +948,23 @@ async function getMarketData(
         proxies,
         name: contracts[i] + "-" + "market.json",
       });
-      await loadOnChainData({
-        topics: [[swapEvent, syncEvent]],
-        address: pairs[i].map((pair) => pair.address),
-        blockchain: blockchains[i],
-        genesis: tokenGenesis,
-        proxies,
-        name: contracts[i] + "-" + "market.json",
-      });
+
+      if (await shouldLoad(contracts[i] + "-" + "market.json")) {
+        console.log("Loading market data.");
+        const lastBlock = await readLastBlock(
+          contracts[i] + "-" + "market.json"
+        );
+
+        await loadOnChainData({
+          topics: [[swapEvent, syncEvent]],
+          address: pairs[i].map((pair) => pair.address),
+          blockchain: blockchains[i],
+          genesis: Math.max(tokenGenesis, lastBlock),
+          proxies,
+          name: contracts[i] + "-" + "market.json",
+          id,
+        });
+      }
 
       // const data: Log[][] = JSON.parse(fs.readFileSync('logs/1657115237268.json', 'utf-8'));
       const pipeline = chain([
@@ -1559,6 +1685,7 @@ async function loadOnChainData({
   proxies,
   blockchain,
   name,
+  id,
 }: {
   address?: string | string[] | undefined;
   topics?: (string | string[] | null)[] | undefined;
@@ -1566,23 +1693,39 @@ async function loadOnChainData({
   proxies: string[];
   name: string;
   blockchain: Blockchain;
+  id: number;
 }) {
-  console.log("Generating MagicWeb3");
-  const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
-  console.log("Fetching last block");
+  console.log("Genesis : " + genesis);
+  if (restartSettings.block && restartSettings.block > genesis) {
+    genesis = restartSettings.block;
+    console.log("Updated genesis = " + genesis);
+  }
+
+  const magicWeb3 =
+    blockchain === "BNB Smart Chain (BEP20)"
+      ? new MagicWeb3(
+          "https://little-dawn-grass.bsc.quiknode.pro/92bfde323130bc080301fa8d7736efb153432158/",
+          [],
+          { proxies: false }
+        )
+      : new MagicWeb3(supportedRPCs[blockchain], proxies);
   const normalWeb3 = new Web3(
     new Web3.providers.HttpProvider(supportedRPCs[blockchain][0])
   );
   const latestBlock = await getForSure(normalWeb3.eth.getBlock("latest"));
-  console.log("Latest block: ", latestBlock.number);
   const iterationsNeeded =
     (latestBlock.number - genesis) /
     RPCLimits[blockchain].maxRange /
     RPCLimits[blockchain].queriesLimit /
-    (Math.max(proxies.length, 1) *
-      Math.min(supportedRPCs[blockchain].length, 2));
+    (proxies.length * Math.min(supportedRPCs[blockchain].length, 2));
 
-  openDataFile(name);
+  if (!restartSettings.restart || !fs.existsSync("logs/" + name)) {
+    openDataFile(name);
+  } else {
+    console.log("Not opening data file as already starting.");
+  }
+
+  console.log("Total operations needed:" + iterationsNeeded);
 
   for (
     let k = genesis;
@@ -1662,27 +1805,17 @@ async function loadOnChainData({
 
     let success = 0;
     let ok = 0;
-    let fail = 0;
-    let total = 0;
-    let nonentry = 0;
 
-    console.log("Total calls: " + calls.length);
+    console.log("Loading data from " + calls.length + " calls");
 
     data = data.concat(
       (await Promise.all(calls)).map((entry, index) => {
-        if (index % 1000 === 0) console.log("Iterating" + index);
-        total++;
         // @ts-ignore
         if ((entry?.length || 0) > 0) {
           success++;
           return entry;
         } else {
-          nonentry++;
-          if (entry) {
-            ok++;
-          } else {
-            fail++;
-          }
+          if (entry) ok++;
           return (
             k +
             index * RPCLimits[blockchain].maxRange +
@@ -1701,13 +1834,7 @@ async function loadOnChainData({
         success +
           " successful events found on this iteration (" +
           ok +
-          " replied calls) and " +
-          fail +
-          "fails (total: " +
-          total +
-          ",nonentry: " +
-          nonentry +
-          ")"
+          " replied calls)"
       )
     );
 
@@ -1717,6 +1844,9 @@ async function loadOnChainData({
 
     let bufferRange = RPCLimits[blockchain].maxRange;
     let iterations = 1;
+    let failedIterations = 0;
+    let sliced: number = 0;
+
     while (needToRecall.length > 0) {
       // idée : au départ, diviseur maximum qu'on peut supporter.
       // Ensuite, on itère avec ce diviseur jusqu'à ce que le nouveau diviseur
@@ -1729,7 +1859,7 @@ async function loadOnChainData({
         RPCLimits[blockchain].maxRange /
           2 /
           Math.ceil(
-            (Math.max(proxies.length, 1) *
+            (proxies.length *
               supportedRPCs[blockchain].length *
               RPCLimits[blockchain].queriesLimit) /
               needToRecall.length
@@ -1737,8 +1867,22 @@ async function loadOnChainData({
       );
       const changingRange = bufferRange / 2 >= blocRange;
       bufferRange = changingRange ? Math.floor(bufferRange / 2) : bufferRange;
+      bufferRange = bufferRange === 0 ? 1 : bufferRange;
       console.log(changingRange ? "UPDATING Range" : "Not modifying range");
       console.log("Current block range : " + bufferRange);
+
+      if (sliced === 1) {
+        needToRecall = needToRecall.slice(
+          0,
+          Math.ceil(needToRecall.length / 2)
+        );
+      } else if (sliced === 2) {
+        needToRecall = needToRecall.slice(
+          Math.floor(needToRecall.length / 2),
+          needToRecall.length
+        );
+      }
+
       console.log(
         yellow(
           "Recalling failed calls (" +
@@ -1804,7 +1948,8 @@ async function loadOnChainData({
                         resolve("Empty");
                       } else if (
                         e.toString().includes("Forbidden") ||
-                        e.toString().includes("CONNECTION ERROR")
+                        e.toString().includes("CONNECTION ERROR") ||
+                        e.toString().includes("limit")
                       ) {
                         resolve("Forbidden");
                       } else if (e.toString().includes("CONNECTION TIMEOUT")) {
@@ -1892,6 +2037,22 @@ async function loadOnChainData({
           ". Others : " +
           broken
       );
+
+      if (success === 0) failedIterations++;
+      if (failedIterations === 10) {
+        console.log("Looks like we are stuck... waiting 10 minutes.");
+        await supabase.from("assets").update({ tried: false }).match({ id });
+        process.exit(10);
+        // await new Promise((r) => setTimeout(r, 1000 * 60 * 10));
+        // console.log("Setting sliced mode.");
+        // sliced = 1;
+      }
+
+      if (sliced === 1) {
+        sliced = 2;
+      } else if (sliced === 2) {
+        sliced = 0;
+      }
 
       data = data.concat(formattedEvents);
       iterations++;
@@ -2100,25 +2261,4 @@ async function getForSure(promise: Promise<any>) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
-}
-
-async function dataLoaded(filename: string) {
-  console.log('Trying to find "' + filename + '"');
-  return new Promise((resolve) =>
-    fs.readFile("logs/" + filename, "utf8", (err, data) => {
-      if (err) {
-        console.log("File not found " + err);
-        resolve(false);
-      } else {
-        try {
-          console.log("Found file");
-          data = JSON.parse(data.toString());
-          resolve(true);
-        } catch (e) {
-          console.log("File not found" + e);
-          resolve(false);
-        }
-      }
-    })
-  );
 }

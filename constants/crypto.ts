@@ -4107,24 +4107,33 @@ export async function getShardedPairsFromTokenId(id: number): Promise<any[]> {
         let fetchedData = false;
         while (!fetchedData) {
           try {
-            const { data, error } = (await supabasePairs
+            const { count } = (await supabasePairs
               .from(`0x${hexaChar}`)
-              .select("*")
+              .select("id", { count: "exact" })
               .or(`token0_id.eq.${id},token1_id.eq.${id}`)) as any;
 
-            if (error) {
-              throw `Supabase => ${error.message}`;
+            for (let i = 0; i < count; i += 100) {
+              const { data, error } = (await supabasePairs
+                .from(`0x${hexaChar}`)
+                .select("*")
+                .or(`token0_id.eq.${id},token1_id.eq.${id}`)
+                .range(i, i + 100)) as any;
+
+              if (error) {
+                throw `Supabase => ${error.message}`;
+              }
+
+              for (const pair of data) {
+                finalArray.push(pair);
+              }
             }
 
-            for (const pair of data) {
-              finalArray.push(pair);
-            }
             fetchedData = true;
             resolve(null);
           } catch (e) {
             fetchedData = false;
             console.error(`Error getShardedPairsFromTokenId: ${e}`);
-            await new Promise((r) => setTimeout(() => r(null), 1000));
+            await new Promise((r) => setTimeout(r, 1000));
           }
         }
       })
