@@ -1453,6 +1453,8 @@ async function getMarketData(
         });
 
         pipeline.on("error", (error) => {
+          console.info(error, "logs/" + contracts[i] + "-" + "market.json");
+          console.info("yo, skuuurt");
           console.log(error, "logs/" + contracts[i] + "-" + "market.json");
           console.log("yo, skuuurt");
           process.exit(100);
