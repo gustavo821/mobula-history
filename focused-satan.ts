@@ -57,7 +57,8 @@ interface Pair {
 type Blockchain =
   // | "Arbitrum"
   // |
-  | "Aurora"
+  // | "Aurora"
+  // |
   | "Avalanche C-Chain"
   | "BNB Smart Chain (BEP20)"
   | "Cronos"
@@ -88,7 +89,7 @@ const supportedRPCs: { [index: string]: string[] } = {
   Polygon: ["https://polygon-rpc.com", "https://rpc.ankr.com/polygon"],
   Cronos: ["https://evm-cronos.crypto.org"],
   "Metis Andromeda": ["https://andromeda.metis.io/owner1088"],
-  Aurora: ["https://mainnet.aurora.dev"],
+  // Aurora: ["https://mainnet.aurora.dev"],
   // Arbitrum: ["https://rpc.ankr.com/arbitrum"],
 };
 
@@ -182,11 +183,11 @@ const WETHAndStables: { [index: string]: string[] } = {
     "0xc7198437980c041c805a1edcba50c1ce5db95118",
     "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
   ],
-  Aurora: [
-    "0x8bec47865ade3b172a928df8f990bc7f2a3b9f79",
-    "0x4988a896b1227218e4a686fde5eabdcabd91571f",
-    "0xb12bfca5a55806aaf64e99521918a4bf0fc40802",
-  ],
+  // Aurora: [
+  //   "0x8bec47865ade3b172a928df8f990bc7f2a3b9f79",
+  //   "0x4988a896b1227218e4a686fde5eabdcabd91571f",
+  //   "0xb12bfca5a55806aaf64e99521918a4bf0fc40802",
+  // ],
 };
 
 const swapEvent =
@@ -1449,6 +1450,12 @@ async function getMarketData(
               );
             }
           }
+        });
+
+        pipeline.on("error", (error) => {
+          console.log(error, "logs/" + contracts[i] + "-" + "market.json");
+          console.log("yo, skuuurt");
+          process.exit(100);
         });
 
         pipeline.on("end", () => {
