@@ -308,7 +308,7 @@ console.log = (...params) => {
     // .gt("market_cap", 0)
     // .match({ tried: false })) as any;
     // .match({ name: "Octaplex Network" })) as any;
-    .match({ name: "Bitcoin" })) as any;
+    .match({ name: "Avalanche" })) as any;
   // console.info(data, error);
 
   console.info(!data, error);
