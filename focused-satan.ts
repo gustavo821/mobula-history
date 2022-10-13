@@ -940,7 +940,7 @@ async function getMarketData(
   const total_volume_history: [number, number][] = [];
 
   for (let i = 0; i < contracts.length; i++) {
-    if (RPCLimits[blockchains[i]]) {
+    if (RPCLimits[blockchains[i]] && pairs[i]) {
       // console.log(pairs, i);
       const blocks = blockMap.get(blockchains[i])!.blocks;
       const tokenGenesis = 0; // HOTFIX: createdAt is broken. Math.min(...pairs[i].map((pair) => pair.createdAt));
