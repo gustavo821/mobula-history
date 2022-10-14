@@ -942,7 +942,6 @@ async function getMarketData(
   for (let i = 0; i < contracts.length; i++) {
     if (RPCLimits[blockchains[i]] && pairs[i]) {
       // console.log(pairs, i);
-      const blocks = blockMap.get(blockchains[i])!.blocks;
       const tokenGenesis = 0; // HOTFIX: createdAt is broken. Math.min(...pairs[i].map((pair) => pair.createdAt));
       console.log(
         JSON.stringify({
@@ -973,8 +972,13 @@ async function getMarketData(
           id,
         });
       }
+    }
+  }
 
-      // const data: Log[][] = JSON.parse(fs.readFileSync('logs/1657115237268.json', 'utf-8'));
+  for (let i = 0; i < contracts.length; i++) {
+    if (RPCLimits[blockchains[i]] && pairs[i]) {
+      const blocks = blockMap.get(blockchains[i])!.blocks;
+
       const pipeline = chain([
         fs.createReadStream("logs/" + contracts[i] + "-" + "market.json"),
         parser(),
@@ -2057,6 +2061,7 @@ async function loadOnChainData({
       if (success === 0) failedIterations++;
       if (failedIterations === 10) {
         console.log("Looks like we are stuck... waiting 10 minutes.");
+        console.info("Looks like we are stuck... waiting 10 minutes.");
         await supabase.from("assets").update({ tried: false }).match({ id });
         process.exit(10);
         // await new Promise((r) => setTimeout(r, 1000 * 60 * 10));
