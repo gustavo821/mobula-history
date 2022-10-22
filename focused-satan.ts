@@ -104,7 +104,7 @@ const RPCLimits: {
 } = {
   "BNB Smart Chain (BEP20)": {
     queriesLimit: 0.1,
-    maxRange: 100,
+    maxRange: 50,
     timeout: 30000,
     timeoutPlus: 3000,
   },
@@ -309,7 +309,7 @@ console.log = (...params) => {
     // .gt("market_cap", 0)
     // .match({ tried: false })) as any;
     // .match({ name: "Octaplex Network" })) as any;
-    .match({ name: "Avalanche" })) as any;
+    .match({ name: "Tether" })) as any;
   // console.info(data, error);
 
   console.info(!data, error);
@@ -1717,6 +1717,7 @@ async function loadOnChainData({
   id: number;
 }) {
   console.log("Genesis : " + genesis);
+  console.log('Addresses: '+address?.length)
   if (restartSettings.block && restartSettings.block > genesis) {
     genesis = restartSettings.block;
     console.log("Updated genesis = " + genesis);
@@ -1801,7 +1802,7 @@ async function loadOnChainData({
             .getPastLogs({
               fromBlock: Math.floor(j),
               toBlock: Math.floor(j + RPCLimits[blockchain].maxRange),
-              address,
+              address: (address?.length || 0 > 10000 ? undefined : address),
               topics,
             })
             .catch((e) => {
@@ -1834,7 +1835,8 @@ async function loadOnChainData({
         // @ts-ignore
         if ((entry?.length || 0) > 0) {
           success++;
-          return entry;
+          // @ts-ignore
+          return entry.filter((reply: Log) => (!address || address === reply.address || address?.includes(reply.address.toLowerCase())));
         } else {
           if (entry) ok++;
           return (
@@ -1948,7 +1950,7 @@ async function loadOnChainData({
                   .getPastLogs({
                     fromBlock: Math.floor(x),
                     toBlock: Math.floor(x + bufferRange),
-                    address,
+                    address: (address?.length || 0 > 10000 ? undefined : address),
                     topics,
                   })
                   .catch((e) => {
@@ -2034,8 +2036,16 @@ async function loadOnChainData({
           success++;
         }
 
-        if (reply && typeof reply != "string") {
-          formattedEvents.push(reply);
+        // console.log('Chibre', reply && typeof reply != "string")
+
+        if (reply && typeof reply != "string" && reply.filter((entry: Log) => (!address || address === entry.address || address?.includes(entry.address))).length > 0) {
+          // console.log('bushibre')
+          formattedEvents.push(reply.filter((entry: Log) => (!address || address === entry.address || address?.includes(entry.address.toLowerCase()))));
+        } else if (reply && typeof reply != "string") {
+          // console.log('Breshi')
+          // reply.filter((entry: Log) => {
+          //   console.log(entry.address, (!address || address === entry.address || address?.includes(entry.address)))
+          // })
         }
       }
 
@@ -2060,6 +2070,7 @@ async function loadOnChainData({
       );
 
       if (success === 0) failedIterations++;
+      else failedIterations = 0;
       if (failedIterations === 10) {
         console.log("Looks like we are stuck... waiting 10 minutes.");
         console.info("Looks like we are stuck... waiting 10 minutes.");
