@@ -104,31 +104,31 @@ const RPCLimits: {
 } = {
   "BNB Smart Chain (BEP20)": {
     queriesLimit: 0.1,
-    maxRange: 100,
+    maxRange: 500,
     timeout: 30000,
     timeoutPlus: 3000,
   },
   Polygon: {
     queriesLimit: 0.1,
-    maxRange: 100,
+    maxRange: 500,
     timeout: 100000,
     timeoutPlus: 2000,
   },
   Ethereum: {
     queriesLimit: 0.1,
-    maxRange: 100,
+    maxRange: 500,
     timeout: 100000,
     timeoutPlus: 2000,
   },
   Fantom: {
     queriesLimit: 0.1,
-    maxRange: 100,
+    maxRange: 500,
     timeout: 100000,
     timeoutPlus: 2000,
   },
   Cronos: {
     queriesLimit: 0.1,
-    maxRange: 100,
+    maxRange: 500,
     timeout: 100000,
     timeoutPlus: 2000,
   },
@@ -142,7 +142,7 @@ const RPCLimits: {
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
     queriesLimit: 0.1,
-    maxRange: 100,
+    maxRange: 500,
     timeout: 100000,
     timeoutPlus: 2000,
   },
@@ -309,7 +309,7 @@ console.log = (...params) => {
     // .gt("market_cap", 0)
     // .match({ tried: false })) as any;
     // .match({ name: "Octaplex Network" })) as any;
-    .match({ name: "Tether" })) as any;
+    .match({ name: "Ethereum" })) as any;
   // console.info(data, error);
 
   console.info(!data, error);
