@@ -1,6 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { ethers } from "ethers";
-import config from "../config";
 
 export const DEAD_WALLETS = [
   "0x000000000000000000000000000000000000dEaD",
@@ -4199,8 +4198,57 @@ export async function getShardedPairsFromAddresses(
 }
 
 export const createPairsSupabaseClient = () => {
-  return createClient(
-    "https://ynyevwlgdolrcfxzvqhr.supabase.co",
-    config.SUPABASE_PAIRS_KEY
-  );
+  return new MetaSupabase();
 };
+
+export class MetaSupabase {
+  clusters: { [index: string]: SupabaseClient };
+  tables: { [index: string]: string[] };
+
+  constructor() {
+    this.tables = {
+      "pairs-1": ["0x0", "0x1", "0x2", "0x3"],
+      "pairs-2": ["0x4", "0x5", "0x6", "0x7"],
+      "pairs-3": ["0x8", "0x9", "0xa", "0xb"],
+      "pairs-4": ["0xc", "0xd", "0xe", "0xf"],
+    };
+
+    this.clusters = {
+      "pairs-1": createClient(
+        "https://yggsdmqfwpntpjbdnpfo.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZ3NkbXFmd3BudHBqYmRucGZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0MzE3OSwiZXhwIjoxOTgyNTE5MTc5fQ.AvyUlzlLS2fp_3_sYTfSasAHu-p6XeK3sm-wk_b1Mio"
+      ),
+      "pairs-2": createClient(
+        "https://lisnecmeheedtflucdxy.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpc25lY21laGVlZHRmbHVjZHh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NjYzMywiZXhwIjoxOTgyNTIyNjMzfQ.y0uOCsVxdK_jJeDW-wXKG61UbdLjUe9VkOhUzgVX6Lw"
+      ),
+      "pairs-3": createClient(
+        "https://cganiivuxawwfdqtebjk.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnYW5paXZ1eGF3d2ZkcXRlYmprIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NzU5NiwiZXhwIjoxOTgyNTIzNTk2fQ.VeXrF6N62AMYrG-5vLeXNK22nCaKrLSPoaO2bOpI3B4"
+      ),
+      "pairs-4": createClient(
+        "https://eznupqzoqqsywujpqbsf.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6bnVwcXpvcXFzeXd1anBxYnNmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NzM4NiwiZXhwIjoxOTgyNTIzMzg2fQ.zGwmsmD9Nwj98OxZWD8iSnFVp6M72Nxe2XwogB53O3E"
+      ),
+      default: createClient(
+        "https://ylcxvfbmqzwinymcjlnx.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsY3h2ZmJtcXp3aW55bWNqbG54Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2MDIxMzEzOSwiZXhwIjoxOTc1Nzg5MTM5fQ.Pv5rENBrJQ3kOpxoSfcQWgfI8G5FuWyWvmZzynD_gQ4"
+      ),
+    };
+  }
+
+  getRightSupabase(table: string) {
+    for (const cluster of Object.keys(this.clusters)) {
+      if (this.tables[cluster]?.includes(table)) {
+        console.log("wtf", cluster);
+        return this.clusters[cluster];
+      }
+    }
+    console.log("We go for it");
+    return this.clusters["default"];
+  }
+
+  from(table: string) {
+    return this.getRightSupabase(table).from(table);
+  }
+}
