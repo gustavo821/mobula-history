@@ -1,18 +1,18 @@
-import Web3 from "web3";
-import { Log } from "web3-core";
-import { MagicWeb3, loadProxies } from "./MagicWeb3";
 import { chain } from "stream-chain";
 import { parser } from "stream-json";
 import { pick } from "stream-json/filters/Pick";
-import { ignore } from "stream-json/filters/Ignore";
 import { streamArray } from "stream-json/streamers/StreamArray";
+import Web3 from "web3";
+import { Log } from "web3-core";
+import { loadProxies, MagicWeb3 } from "./MagicWeb3";
 
-import config from "./config";
-import fs from "fs";
-import { ethers } from "ethers";
-import { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
-import { green, yellow, red, magenta } from "colorette";
+import axios from "axios";
+import { green, magenta, red, yellow } from "colorette";
+import { ethers } from "ethers";
+import fs from "fs";
+import { AbiItem } from "web3-utils";
+import config from "./config";
 import {
   createPairsSupabaseClient,
   DEAD_WALLETS,
@@ -21,8 +21,6 @@ import {
   getShardedPairsFromTokenId,
   providers,
 } from "./constants/crypto";
-import { AbiItem } from "web3-utils";
-import axios from "axios";
 
 const supabase = createClient(
   "https://ylcxvfbmqzwinymcjlnx.supabase.co",
@@ -280,7 +278,7 @@ const sendSlackMessage = async (channel: string, text: string) => {
       text,
     });
   } catch (e) {
-    console.warn(e);
+    // console.warn(e);
   }
 };
 
@@ -1838,6 +1836,7 @@ async function loadOnChainData({
         // @ts-ignore
         if ((entry?.length || 0) > 0) {
           success++;
+          ok++;
           return entry;
         } else {
           if (entry) ok++;
