@@ -1,7 +1,7 @@
 import axios from "axios";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import Web3 from "web3";
 import Web3HttpProvider from "web3-providers-http";
-import { HttpsProxyAgent } from "https-proxy-agent";
 import { AbiItem } from "web3-utils";
 export class MagicWeb3 {
   rpcs: string[];
@@ -111,7 +111,7 @@ export const loadProxies = async (pages: number) => {
       (
         await axios.get("https://proxy.webshare.io/api/proxy/list/?page=" + i, {
           headers: {
-            Authorization: "Token a9b1c399948e3ccebe42d363fec3c3ef5f00c7e4",
+            Authorization: "Token bmqf0k11ugx45lyumsc2r35lam1qxsfw7tbiozh2",
           },
         })
       )?.data?.results?.map((proxy: any) => {
