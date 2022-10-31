@@ -629,6 +629,34 @@ console.log = (...params) => {
         console.log("Done with asset.");
       }
 
+      try {
+        const decimals: (number | null)[] = [];
+        for (let i = 0; i < data[i].contracts.length; i++) {
+          try {
+            const provider = new ethers.providers.JsonRpcProvider(
+              supportedRPCs[data[i].blockchains[i]][0]
+            );
+
+            const decimal = await new ethers.Contract(
+              data[i].contracts[i],
+              ["function decimals() public view returns(uint256)"],
+              provider
+            ).decimals();
+
+            decimals.push(decimal.toNumber());
+          } catch (e) {
+            decimals.push(null);
+          }
+        }
+
+        await supabase
+          .from("assets")
+          .update({ decimals })
+          .match({ id: data[i].id });
+      } catch (e) {
+        console.log(data[i], e);
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
