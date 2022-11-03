@@ -1,4 +1,3 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { ethers } from "ethers";
 
 export const DEAD_WALLETS = [
@@ -4094,161 +4093,81 @@ export const blocksBlockchains = [
     rpc: "https://rpc.ankr.com/arbitrum",
   },
 ];
-export async function getShardedPairsFromTokenId(id: number): Promise<any[]> {
-  const hexa = "0123456789abcdef";
-  const supabasePairs = await createPairsSupabaseClient();
-  const responses = [];
-  const finalArray: any[] = [];
-  const timeBefore = Date.now();
-  for (const hexaChar of hexa) {
-    responses.push(
-      new Promise(async (resolve) => {
-        let fetchedData = false;
-        while (!fetchedData) {
-          try {
-            const { count } = (await supabasePairs
-              .from(`0x${hexaChar}`)
-              .select("id", { count: "exact" })
-              .or(`token0_id.eq.${id},token1_id.eq.${id}`)) as any;
 
-            for (let i = 0; i < count; i += 100) {
-              const { data, error } = (await supabasePairs
-                .from(`0x${hexaChar}`)
-                .select("*")
-                .or(`token0_id.eq.${id},token1_id.eq.${id}`)
-                .range(i, i + 100)) as any;
-
-              if (error) {
-                throw `Supabase => ${error.message}`;
-              }
-
-              for (const pair of data) {
-                finalArray.push(pair);
-              }
-            }
-
-            fetchedData = true;
-            resolve(null);
-          } catch (e) {
-            fetchedData = false;
-            console.error(`Error getShardedPairsFromTokenId: ${e}`);
-            await new Promise((r) => setTimeout(r, 1000));
-          }
-        }
-      })
-    );
-  }
-
-  await Promise.all(responses);
-  const timeAfter = Date.now();
-  console.log(
-    `getShardedPairsFromTokenId resolved 16 queries in ${
-      (timeAfter - timeBefore) / 1000
-    } sec`
-  );
-  return finalArray;
-}
-
-export async function getShardedPairsFromAddresses(
-  addresses: string[]
-): Promise<any[]> {
-  const hexa = "0123456789abcdef";
-  const supabasePairs = await createPairsSupabaseClient();
-  const responses = [];
-  const finalArray: any[] = [];
-  const timeBefore = Date.now();
-  for (const hexaChar of hexa) {
-    responses.push(
-      new Promise(async (resolve) => {
-        let fetchedData = false;
-        while (!fetchedData) {
-          try {
-            const { data, error } = (await supabasePairs
-              .from(`0x${hexaChar}`)
-              .select("*")
-              .in("address", addresses)) as any;
-
-            if (error) {
-              throw `Supabase => ${error.message}`;
-            }
-
-            for (const pair of data) {
-              finalArray.push(pair);
-            }
-            fetchedData = true;
-            resolve(null);
-          } catch (e) {
-            fetchedData = false;
-            console.error(`Error getShardedPairsFromTokenId: ${e}`);
-            await new Promise((r) => setTimeout(() => r(null), 1000));
-          }
-        }
-      })
-    );
-  }
-
-  await Promise.all(responses);
-  const timeAfter = Date.now();
-  console.log(
-    `getShardedPairsFromTokenId resolved 16 queries in ${
-      (timeAfter - timeBefore) / 1000
-    } sec`
-  );
-  return finalArray;
-}
-
-export const createPairsSupabaseClient = () => {
-  return new MetaSupabase();
+export const supportedRPCs: { [index: string]: string[] } = {
+  "Avalanche C-Chain": ["https://api.avax.network/ext/bc/C/rpc"],
+  "BNB Smart Chain (BEP20)": [
+    "https://bsc-dataseed.binance.org/",
+    "https://bsc-dataseed2.binance.org/",
+    "https://bscrpc.com",
+    // "https://bsc-dataseed3.binance.org/",
+    // "https://bsc-dataseed4.binance.org/",
+    // "https://bsc-dataseed1.defibit.io/",
+    // "https://bsc-dataseed2.defibit.io/",
+    // "https://bsc-dataseed3.defibit.io/",
+    // "https://bsc-dataseed4.defibit.io/",
+    // "https://bsc-dataseed1.ninicoin.io/",
+    // "https://bsc-dataseed2.ninicoin.io/",
+    // "https://bsc-dataseed3.ninicoin.io/",
+    // "https://bsc-dataseed4.ninicoin.io/",
+  ],
+  Ethereum: ["https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"],
+  Fantom: ["https://rpc.ftm.tools/"],
+  Polygon: ["https://polygon-rpc.com", "https://rpc.ankr.com/polygon"],
+  Cronos: ["https://evm-cronos.crypto.org"],
+  "Metis Andromeda": ["https://andromeda.metis.io/owner1088"],
+  // Aurora: ["https://mainnet.aurora.dev"],
+  // Arbitrum: ["https://rpc.ankr.com/arbitrum"],
 };
 
-export class MetaSupabase {
-  clusters: { [index: string]: SupabaseClient };
-  tables: { [index: string]: string[] };
+export const WETHAndStables: { [index: string]: string[] } = {
+  "BNB Smart Chain (BEP20)": [
+    "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+    "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+    "0x55d398326f99059ff775485246999027b3197955",
+  ],
+  Polygon: [
+    "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+    "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+  ],
+  Ethereum: [
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "0xdac17f958d2ee523a2206206994597c13d831ec7",
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+  ],
+  Fantom: [
+    "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+    "0x04068da6c83afcfa0e13ba15a6696662335d5b75",
+    "0x049d68029688eabf473097a2fc38ef61633a3c7a",
+  ],
+  Cronos: [
+    "0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23",
+    "0xc21223249ca28397b4b6541dffaecc539bff0c59",
+    "0x66e428c3f67a68878562e79a0234c1f83c208770",
+  ],
+  // Arbitrum: [
+  //   "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+  //   "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+  //   "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+  // ],
+  "Avalanche C-Chain": [
+    "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+    "0xc7198437980c041c805a1edcba50c1ce5db95118",
+    "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+  ],
+  // Aurora: [
+  //   "0x8bec47865ade3b172a928df8f990bc7f2a3b9f79",
+  //   "0x4988a896b1227218e4a686fde5eabdcabd91571f",
+  //   "0xb12bfca5a55806aaf64e99521918a4bf0fc40802",
+  // ],
+};
 
-  constructor() {
-    this.tables = {
-      "pairs-1": ["0x0", "0x1", "0x2", "0x3"],
-      "pairs-2": ["0x4", "0x5", "0x6", "0x7"],
-      "pairs-3": ["0x8", "0x9", "0xa", "0xb"],
-      "pairs-4": ["0xc", "0xd", "0xe", "0xf"],
-    };
-
-    this.clusters = {
-      "pairs-1": createClient(
-        "https://yggsdmqfwpntpjbdnpfo.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZ3NkbXFmd3BudHBqYmRucGZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0MzE3OSwiZXhwIjoxOTgyNTE5MTc5fQ.AvyUlzlLS2fp_3_sYTfSasAHu-p6XeK3sm-wk_b1Mio"
-      ),
-      "pairs-2": createClient(
-        "https://lisnecmeheedtflucdxy.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpc25lY21laGVlZHRmbHVjZHh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NjYzMywiZXhwIjoxOTgyNTIyNjMzfQ.y0uOCsVxdK_jJeDW-wXKG61UbdLjUe9VkOhUzgVX6Lw"
-      ),
-      "pairs-3": createClient(
-        "https://cganiivuxawwfdqtebjk.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnYW5paXZ1eGF3d2ZkcXRlYmprIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NzU5NiwiZXhwIjoxOTgyNTIzNTk2fQ.VeXrF6N62AMYrG-5vLeXNK22nCaKrLSPoaO2bOpI3B4"
-      ),
-      "pairs-4": createClient(
-        "https://eznupqzoqqsywujpqbsf.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6bnVwcXpvcXFzeXd1anBxYnNmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NzM4NiwiZXhwIjoxOTgyNTIzMzg2fQ.zGwmsmD9Nwj98OxZWD8iSnFVp6M72Nxe2XwogB53O3E"
-      ),
-      default: createClient(
-        "https://ylcxvfbmqzwinymcjlnx.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsY3h2ZmJtcXp3aW55bWNqbG54Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2MDIxMzEzOSwiZXhwIjoxOTc1Nzg5MTM5fQ.Pv5rENBrJQ3kOpxoSfcQWgfI8G5FuWyWvmZzynD_gQ4"
-      ),
-    };
-  }
-
-  getRightSupabase(table: string) {
-    for (const cluster of Object.keys(this.clusters)) {
-      if (this.tables[cluster]?.includes(table)) {
-        console.log("wtf", cluster);
-        return this.clusters[cluster];
-      }
-    }
-    console.log("We go for it");
-    return this.clusters["default"];
-  }
-
-  from(table: string) {
-    return this.getRightSupabase(table).from(table);
-  }
-}
+export const swapEvent =
+  "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822";
+export const transferEvent =
+  "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+export const createPairEvent =
+  "0x0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9";
+export const syncEvent =
+  "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1";
