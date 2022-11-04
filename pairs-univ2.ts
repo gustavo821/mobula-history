@@ -5,7 +5,7 @@ import {
   createPairEvent,
   ERC20ABI,
   supportedRPCs,
-  WETHAndStables,
+  WETHAndStables
 } from "./constants/crypto";
 import { readLastBlock } from "./files";
 import { loadOnChainData } from "./load";
@@ -42,6 +42,7 @@ export async function findAllPairs(
           proxies,
           name: contracts[i] + "-" + "pairs1.json",
           id,
+          type: 'pairs-univ2'
         });
       }
 
@@ -60,6 +61,7 @@ export async function findAllPairs(
           proxies,
           name: contracts[i] + "-" + "pairs0.json",
           id,
+          type: 'pairs-univ2'
         });
       }
 

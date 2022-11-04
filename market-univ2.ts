@@ -10,7 +10,7 @@ import { loadOnChainData } from "./load";
 import { RPCLimits } from "./main";
 import { MetaSupabase } from "./supabase";
 import { Blockchain, Pair, Token } from "./types";
-import { getEthPrice, shouldLoad } from "./utils";
+import { fetchEntry, getEthPrice, shouldLoad } from "./utils";
 
 export async function getMarketData(
   proxies: string[],
@@ -18,7 +18,9 @@ export async function getMarketData(
   blockchains: Blockchain[],
   pairs: Pair[][],
   circulatingSupply: number,
-  id: number
+  id: number,
+  fromDate?: number,
+  toDate?: number
 ): Promise<{
   liquidity_history: [number, number][];
   market_cap_history: [number, number][];
@@ -91,6 +93,7 @@ export async function getMarketData(
       return [entry.name, entry.price.concat(entry.recent_price)];
     })
   );
+  
 
   const liquidity_per_blockchain = new Map(
     blockchains.map((blockchain) => {
@@ -153,6 +156,7 @@ export async function getMarketData(
           proxies,
           name: contracts[i] + "-" + "market.json",
           id,
+          type: 'market-univ2'
         });
       }
     }
@@ -377,7 +381,7 @@ export async function getMarketData(
                 //   latestHistoryBlock.number
                 // );
               }
-              // console.log("Start liquidity ", pair.pairData.reserveUSD);
+              console.log("Start liquidity ", pair.pairData.reserveUSD);
 
               if (entry.topics[0] == swapEvent) {
                 // console.log(green("Swap event detected. Processing."));
@@ -442,6 +446,7 @@ export async function getMarketData(
 
                 const bufferPair = pair.pairData.volumeUSD;
                 pair.pairData.volumeUSD += amountUSD;
+                // console.log(amountUSD, JSON.stringify(pair, (key, value) => typeof value === "bigint" ? value.toString() : value ))
 
                 pairsMap.set(pair.address, pair);
               } else {
@@ -693,7 +698,11 @@ export async function getMarketData(
                 averagePrice +=
                   freshPair.priceUSD * freshPair.pairData.reserveUSD;
                 console.log("Considering pair ", freshPair.address);
-                console.log(freshPair);
+                console.log( JSON.stringify(
+                  freshPair,
+                  (key, value) =>
+                    typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                ));
               } else if (
                 !isNaN(freshPair.numberReserve as number) &&
                 freshPair.numberReserve
@@ -820,6 +829,7 @@ export async function getMarketData(
     }
   }
 
+
   for (let i = 0; i < liquidity_per_blockchain.get(earliest)!.length; i++) {
     let liquidity = liquidity_per_blockchain.get(earliest)![i][1];
     let averagePrice = price_per_blockchain.get(earliest)![i][1] * liquidity;
@@ -831,20 +841,21 @@ export async function getMarketData(
       liquidity
     );
     for (const blockchain of blockchains) {
+      const index = fetchEntry(liquidity_per_blockchain.get(blockchain)!, liquidity_per_blockchain.get(earliest)![i][0])
       if (
         blockchain != earliest &&
-        liquidity_per_blockchain.get(blockchain)![i]
+        index !== null
       ) {
-        liquidity += liquidity_per_blockchain.get(blockchain)![i][1];
+        liquidity += liquidity_per_blockchain.get(blockchain)![index][1];
         averagePrice +=
-          price_per_blockchain.get(blockchain)![i][1] *
-          liquidity_per_blockchain.get(blockchain)![i][1];
+          price_per_blockchain.get(blockchain)![index][1] *
+          liquidity_per_blockchain.get(blockchain)![index][1];
         console.log(
           "Incrementing with ",
-          price_per_blockchain.get(blockchain)![i][1],
-          liquidity_per_blockchain.get(blockchain)![i][1]
+          price_per_blockchain.get(blockchain)![index][1],
+          liquidity_per_blockchain.get(blockchain)![index][1]
         );
-        volume += volume_per_blockchain.get(blockchain)![i][1];
+        volume += volume_per_blockchain.get(blockchain)![index][1];
       }
     }
 

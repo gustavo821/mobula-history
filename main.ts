@@ -5,7 +5,7 @@ import { findAllPairs } from "./pairs-univ2";
 import {
   getShardedPairsFromAddresses,
   getShardedPairsFromTokenId,
-  MetaSupabase,
+  MetaSupabase
 } from "./supabase";
 import { Pair } from "./types";
 import { getCirculatingSupply, sendSlackMessage, types } from "./utils";
@@ -23,39 +23,51 @@ console.log = (...params) => {
 export const RPCLimits: {
   [index: string]: {
     queriesLimit: number;
-    maxRange: number;
+    maxRange: {[index: string]: number};
     timeout: number;
     timeoutPlus: number;
   };
 } = {
   "BNB Smart Chain (BEP20)": {
-    queriesLimit: 0.1,
-    maxRange: 200,
+    queriesLimit: 0.5,
+    maxRange: {
+      "pairs-univ2": 5000,
+      "market-univ2": 500
+    },
     timeout: 30000,
     timeoutPlus: 3000,
   },
   Polygon: {
-    queriesLimit: 0.1,
-    maxRange: 100,
+    queriesLimit: 0.5,
+    maxRange: {
+      "pairs-univ2": 5000,
+      "market-univ2": 500
+    },    
     timeout: 100000,
     timeoutPlus: 2000,
   },
   Ethereum: {
-    queriesLimit: 0.1,
-    maxRange: 100,
-    timeout: 100000,
+    queriesLimit: 0.5,
+    maxRange: {
+      "pairs-univ2": 5000,
+      "market-univ2": 150
+    },        timeout: 100000,
     timeoutPlus: 2000,
   },
   Fantom: {
-    queriesLimit: 0.1,
-    maxRange: 100,
-    timeout: 100000,
+    queriesLimit: 0.5,
+    maxRange: {
+      "pairs-univ2": 5000,
+      "market-univ2": 500
+    },        timeout: 100000,
     timeoutPlus: 2000,
   },
   Cronos: {
-    queriesLimit: 0.1,
-    maxRange: 100,
-    timeout: 100000,
+    queriesLimit: 0.5,
+    maxRange: {
+      "pairs-univ2": 5000,
+      "market-univ2": 500
+    },        timeout: 100000,
     timeoutPlus: 2000,
   },
   // 'Metis Andromeda': { queriesLimit: 50, maxRange: 20000 },
@@ -67,9 +79,11 @@ export const RPCLimits: {
   // },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
-    queriesLimit: 0.1,
-    maxRange: 100,
-    timeout: 100000,
+    queriesLimit: 0.5,
+    maxRange: {
+      "pairs-univ2": 5000,
+      "market-univ2": 500
+    },        timeout: 100000,
     timeoutPlus: 2000,
   },
 };
@@ -275,11 +289,11 @@ export async function main(settings: any) {
           pairs = freshPairs;
         }
 
-        if (pairs.length > 50) {
-          Object.keys(RPCLimits).forEach((key) => {
-            RPCLimits[key].maxRange = RPCLimits[key].maxRange / 10;
-          });
-        }
+        // if (pairs.length > 50) {
+        //   Object.keys(RPCLimits).forEach((key) => {
+        //     RPCLimits[key].maxRange = RPCLimits[key].maxRange / 10;
+        //   });
+        // }
 
         console.log("Done with pair stuff.");
 
@@ -310,7 +324,9 @@ export async function main(settings: any) {
             data[i].blockchains,
             pairs,
             circulatingSupply,
-            data[i].id
+            data[i].id,
+            settings.fromDate,
+            settings.toDate
           );
           if (settings.extentingData) {
             // TODO

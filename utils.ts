@@ -8,6 +8,7 @@ export const restartSettings = {
   block: parseInt(config.BLOCK) || 0,
   restart: config.RESTART === "true",
   debug: false,
+  noRestart: false
 };
 
 export const sendSlackMessage = async (channel: string, text: string) => {
@@ -22,7 +23,7 @@ export const sendSlackMessage = async (channel: string, text: string) => {
 };
 
 export const shouldLoad = async (name: string) => {
-  if (!restartSettings.restart) return true;
+  if (restartSettings.noRestart) return true;
   if (fs.existsSync("logs/" + name)) {
     try {
       const lastChar = await readLastChar(name);
@@ -166,3 +167,10 @@ export async function getCirculatingSupply(
 }
 
 export const types = ["liquidity", "volume", "price", "total_volume"];
+
+export function fetchEntry(entry: [number, number][], timestamp: number): number | null {
+  for (let i = 0; i < entry.length; i++) {
+    if (entry[i][0] === timestamp) return i
+  }
+  return null;
+}

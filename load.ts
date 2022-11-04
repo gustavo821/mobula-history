@@ -18,6 +18,7 @@ export async function loadOnChainData({
   blockchain,
   name,
   id,
+  type
 }: {
   address?: string | string[] | undefined;
   topics?: (string | string[] | null)[] | undefined;
@@ -26,6 +27,7 @@ export async function loadOnChainData({
   name: string;
   blockchain: Blockchain;
   id: number;
+  type: string
 }) {
   console.log("Genesis : " + genesis);
   console.log("Addresses: " + address?.length);
@@ -44,7 +46,7 @@ export async function loadOnChainData({
   const latestBlock = await getForSure(normalWeb3.eth.getBlock("latest"));
   const iterationsNeeded =
     (latestBlock.number - genesis) /
-    RPCLimits[blockchain].maxRange /
+    RPCLimits[blockchain].maxRange[type] /
     RPCLimits[blockchain].queriesLimit /
     (proxies.length * Math.min(supportedRPCs[blockchain].length, 2));
 
@@ -84,10 +86,13 @@ export async function loadOnChainData({
       )
     );
 
+    // console.log((address?.length || 0 > 10000 ? 'Fetching all on-chain events (old model)'  : 'Fetching only addresses events (old model)'))
+    console.log((address) ? address.length > 10000 ? 'Fetching all on-chain events (new model)' : 'Fetching only addresses events (new model)' : 'Fetching all on-chain events (new model)');
+    
     for (
       let j = k;
       j < k + (latestBlock.number - genesis) / iterationsNeeded;
-      j += RPCLimits[blockchain].maxRange
+      j += RPCLimits[blockchain].maxRange[type]
     ) {
       calls.push(
         new Promise((resolve) => {
@@ -98,7 +103,7 @@ export async function loadOnChainData({
               pushed = true;
               needToRecall.push({
                 fromBlock: j,
-                toBlock: j + RPCLimits[blockchain].maxRange,
+                toBlock: j + RPCLimits[blockchain].maxRange[type],
                 type: "pair",
               });
             }
@@ -108,8 +113,8 @@ export async function loadOnChainData({
             .eth()
             .getPastLogs({
               fromBlock: Math.floor(j),
-              toBlock: Math.floor(j + RPCLimits[blockchain].maxRange),
-              address: address?.length || 0 > 10000 ? undefined : address,
+              toBlock: Math.floor(j + RPCLimits[blockchain].maxRange[type]),
+              address: (address) ? address.length > 10000 ? undefined : address : undefined,
               topics,
             })
             .catch((e) => {
@@ -117,7 +122,7 @@ export async function loadOnChainData({
                 pushed = true;
                 needToRecall.push({
                   fromBlock: j,
-                  toBlock: j + RPCLimits[blockchain].maxRange,
+                  toBlock: j + RPCLimits[blockchain].maxRange[type],
                   type: "pair",
                 });
               }
@@ -153,7 +158,7 @@ export async function loadOnChainData({
           if (entry) ok++;
           return (
             k +
-            index * RPCLimits[blockchain].maxRange +
+            index * RPCLimits[blockchain].maxRange[type] +
             " (" +
             (entry ? "OK" : "ERROR") +
             ")"
@@ -177,7 +182,7 @@ export async function loadOnChainData({
 
     // await new Promise((resolve, reject) => setTimeout(resolve, 3000))
 
-    let bufferRange = RPCLimits[blockchain].maxRange;
+    let bufferRange = RPCLimits[blockchain].maxRange[type];
     let iterations = 1;
     let failedIterations = 0;
     let sliced: number = 0;
@@ -191,7 +196,7 @@ export async function loadOnChainData({
       );
       const recalls: Promise<Log[] | void | string>[] = [];
       const blocRange = Math.floor(
-        RPCLimits[blockchain].maxRange /
+        RPCLimits[blockchain].maxRange[type] /
           2 /
           Math.ceil(
             (proxies.length *
@@ -262,7 +267,7 @@ export async function loadOnChainData({
                   .getPastLogs({
                     fromBlock: Math.floor(x),
                     toBlock: Math.floor(x + bufferRange),
-                    address: address?.length || 0 > 10000 ? undefined : address,
+                    address: (address) ? address.length > 10000 ? undefined : address : undefined,
                     topics,
                   })
                   .catch((e) => {
