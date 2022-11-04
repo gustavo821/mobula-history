@@ -1,6 +1,7 @@
 import fs from "fs";
 import { loadProxies } from "./MagicWeb3";
 import { getMarketData } from "./market-univ2";
+import { getMarketMetaData } from "./meta-market";
 import { findAllPairs } from "./pairs-univ2";
 import {
   getShardedPairsFromAddresses,
@@ -328,6 +329,10 @@ export async function main(settings: any) {
             settings.fromDate,
             settings.toDate
           );
+
+          let bufferMarketCapHistory;
+          let bufferMarketCapRecent;
+
           if (settings.extentingData) {
             // TODO
             const loadedData: any = {
@@ -397,7 +402,7 @@ export async function main(settings: any) {
               }
             }
           } else {
-            const bufferMarketCapHistory =
+             bufferMarketCapHistory =
               data[i].total_supply_contracts?.length > 0
                 ? {
                     market_cap_history: market_cap_history.filter(
@@ -406,7 +411,7 @@ export async function main(settings: any) {
                   }
                 : {};
 
-            const bufferMarketCapRecent =
+             bufferMarketCapRecent =
               data[i].total_supply_contracts?.length > 0
                 ? {
                     market_cap_history: {
@@ -417,86 +422,102 @@ export async function main(settings: any) {
                     },
                   }
                 : {};
-
-            await supabase
-              .from("history")
-              .delete()
-              .match({ asset: data[i].id });
-            const { data: historyData, error: historyError } = await supabase
-              .from("history")
-              .insert({
-                liquidity_history: liquidity_history.filter(
-                  (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
-                ),
-
-                price_history: price_history.filter(
-                  (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
-                ),
-                volume_history: volume_history.filter(
-                  (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
-                ),
-                total_volume_history: total_volume_history.filter(
-                  (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
-                ),
-                asset: data[i].id,
-                ...bufferMarketCapHistory,
-              })
-              .match({ asset: data[i].id });
-
-            console.log(historyData);
-            console.log(historyError);
-
-            const { data: assetData, error: assetError } = await supabase
-              .from("assets")
-              .update({
-                liquidity_history: {
-                  liquidity: liquidity_history.filter(
-                    (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
-                  ),
-                },
-                price_history: {
-                  price: price_history.filter(
-                    (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
-                  ),
-                },
-                volume_history: {
-                  volume: volume_history.filter(
-                    (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
-                  ),
-                },
-                total_volume_history: {
-                  total_volume: total_volume_history.filter(
-                    (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
-                  ),
-                },
-                processed: true,
-                price: price_history[price_history.length - 1]?.[1] || 0,
-                total_volume: Math.round(
-                  total_volume_history[total_volume_history.length - 1]?.[1] ||
-                    0
-                ),
-                liquidity: Math.round(
-                  liquidity_history[liquidity_history.length - 1]?.[1] || 0
-                ),
-                market_cap: Math.round(
-                  market_cap_history[market_cap_history.length - 1]?.[1] || 0
-                ),
-                volume: Math.round(
-                  volume_history[volume_history.length - 1]?.[1] || 0
-                ),
-                tracked:
-                  liquidity_history[liquidity_history.length - 1]?.[1] !==
-                    undefined &&
-                  liquidity_history[liquidity_history.length - 1]?.[1] > 500,
-                history_loaded: true,
-                ...bufferMarketCapRecent,
-              })
-              .match({ id: data[i].id });
-
-            console.log(JSON.stringify(assetData));
-            console.log(JSON.stringify(assetError));
-            console.log("Done with asset.");
           }
+
+          if (settings.isPushingToDB) {
+            const {ath, atl, ath_volume, ath_liquidity, listed_at} = getMarketMetaData(
+              price_history,
+              volume_history,
+              liquidity_history,
+            );
+  
+            await supabase
+            .from("history")
+            .delete()
+            .match({ asset: data[i].id });
+  
+          const { data: historyData, error: historyError } = await supabase
+            .from("history")
+            .insert({
+              liquidity_history: liquidity_history.filter(
+                (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
+              ),
+  
+              price_history: price_history.filter(
+                (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
+              ),
+              volume_history: volume_history.filter(
+                (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
+              ),
+              total_volume_history: total_volume_history.filter(
+                (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
+              ),
+              asset: data[i].id,
+              ...bufferMarketCapHistory,
+            })
+            .match({ asset: data[i].id });
+  
+          console.log(historyData);
+          console.log(historyError);
+  
+          const { data: assetData, error: assetError } = await supabase
+            .from("assets")
+            .update({
+              liquidity_history: {
+                liquidity: liquidity_history.filter(
+                  (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                ),
+              },
+              price_history: {
+                price: price_history.filter(
+                  (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                ),
+              },
+              volume_history: {
+                volume: volume_history.filter(
+                  (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                ),
+              },
+              total_volume_history: {
+                total_volume: total_volume_history.filter(
+                  (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                ),
+              },
+              processed: true,
+              price: price_history[price_history.length - 1]?.[1] || 0,
+              total_volume: Math.round(
+                total_volume_history[total_volume_history.length - 1]?.[1] ||
+                  0
+              ),
+              liquidity: Math.round(
+                liquidity_history[liquidity_history.length - 1]?.[1] || 0
+              ),
+              market_cap: Math.round(
+                market_cap_history[market_cap_history.length - 1]?.[1] || 0
+              ),
+              volume: Math.round(
+                volume_history[volume_history.length - 1]?.[1] || 0
+              ),
+              tracked:
+                liquidity_history[liquidity_history.length - 1]?.[1] !==
+                  undefined &&
+                liquidity_history[liquidity_history.length - 1]?.[1] > 500,
+              history_loaded: true,
+              ath,
+              atl,
+              ath_volume,
+              ath_liquidity,
+              listed_at: new Date(listed_at).toISOString(),
+              ...bufferMarketCapRecent,
+            })
+            .match({ id: data[i].id });
+  
+          console.log(JSON.stringify(assetData));
+          console.log(JSON.stringify(assetError));
+          console.log("Done with asset.");
+          }
+
+
         }
       }
 

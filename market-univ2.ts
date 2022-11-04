@@ -279,20 +279,30 @@ export async function getMarketData(
                       totalVolume += freshPair.pairData.volumeUSD;
                       averagePrice +=
                         freshPair.priceUSD * freshPair.pairData.reserveUSD;
-                      console.log("Considering pair ", freshPair.address);
-                      console.log(
-                        JSON.stringify(
-                          freshPair,
-                          (key, value) =>
-                            typeof value === "bigint" ? value.toString() : value // return everything else unchanged
-                        )
-                      );
+                      // console.log("Considering pair ", freshPair.address);
+                      // console.log(
+                      //   JSON.stringify(
+                      //     freshPair,
+                      //     (key, value) =>
+                      //       typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                      //   )
+                      // );
                     } else if (
-                      !isNaN(freshPair.numberReserve as number) &&
-                      freshPair.numberReserve
+                      !isNaN(freshPair.numberReserve as number)
                     ) {
-                      totalUntrackedLiquidity += freshPair.numberReserve;
+                      // console.log('Considering untracked pair', JSON.stringify(
+                      //   freshPair,
+                      //   (key, value) =>
+                      //     typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                      // ) )
+                      totalUntrackedLiquidity += freshPair.numberReserve!;
                       totalVolume += freshPair.pairData.volumeUSD;
+                    } else {
+                      // console.log(JSON.stringify(
+                      //   freshPair,
+                      //   (key, value) =>
+                      //     typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                      // ) , freshPair.numberReserve ,isNaN(freshPair.numberReserve as number) )
                     }
                   }
 
@@ -381,7 +391,7 @@ export async function getMarketData(
                 //   latestHistoryBlock.number
                 // );
               }
-              console.log("Start liquidity ", pair.pairData.reserveUSD);
+              // console.log("Start liquidity ", pair.pairData.reserveUSD);
 
               if (entry.topics[0] == swapEvent) {
                 // console.log(green("Swap event detected. Processing."));
@@ -704,10 +714,9 @@ export async function getMarketData(
                     typeof value === "bigint" ? value.toString() : value // return everything else unchanged
                 ));
               } else if (
-                !isNaN(freshPair.numberReserve as number) &&
-                freshPair.numberReserve
+                !isNaN(freshPair.numberReserve as number) 
               ) {
-                totalUntrackedLiquidity += freshPair.numberReserve;
+                totalUntrackedLiquidity += freshPair.numberReserve!;
                 totalVolume += freshPair.pairData.volumeUSD;
               }
             }
