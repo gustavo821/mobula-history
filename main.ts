@@ -3,10 +3,11 @@ import { loadProxies } from "./MagicWeb3";
 import { getMarketData } from "./market-univ2";
 import { getMarketMetaData } from "./meta-market";
 import { findAllPairs } from "./pairs-univ2";
+import { pushPairs } from "./push-pairs";
 import {
   getShardedPairsFromAddresses,
   getShardedPairsFromTokenId,
-  MetaSupabase
+  MetaSupabase,
 } from "./supabase";
 import { Pair } from "./types";
 import { getCirculatingSupply, sendSlackMessage, types } from "./utils";
@@ -24,7 +25,7 @@ console.log = (...params) => {
 export const RPCLimits: {
   [index: string]: {
     queriesLimit: number;
-    maxRange: {[index: string]: number};
+    maxRange: { [index: string]: number };
     timeout: number;
     timeoutPlus: number;
   };
@@ -33,7 +34,7 @@ export const RPCLimits: {
     queriesLimit: 0.5,
     maxRange: {
       "pairs-univ2": 5000,
-      "market-univ2": 500
+      "market-univ2": 500,
     },
     timeout: 30000,
     timeoutPlus: 3000,
@@ -42,8 +43,8 @@ export const RPCLimits: {
     queriesLimit: 0.5,
     maxRange: {
       "pairs-univ2": 5000,
-      "market-univ2": 500
-    },    
+      "market-univ2": 500,
+    },
     timeout: 100000,
     timeoutPlus: 2000,
   },
@@ -51,24 +52,27 @@ export const RPCLimits: {
     queriesLimit: 0.5,
     maxRange: {
       "pairs-univ2": 5000,
-      "market-univ2": 150
-    },        timeout: 100000,
+      "market-univ2": 150,
+    },
+    timeout: 100000,
     timeoutPlus: 2000,
   },
   Fantom: {
     queriesLimit: 0.5,
     maxRange: {
       "pairs-univ2": 5000,
-      "market-univ2": 500
-    },        timeout: 100000,
+      "market-univ2": 500,
+    },
+    timeout: 100000,
     timeoutPlus: 2000,
   },
   Cronos: {
     queriesLimit: 0.5,
     maxRange: {
-      "pairs-univ2": 5000,
-      "market-univ2": 500
-    },        timeout: 100000,
+      "pairs-univ2": 2000,
+      "market-univ2": 500,
+    },
+    timeout: 100000,
     timeoutPlus: 2000,
   },
   // 'Metis Andromeda': { queriesLimit: 50, maxRange: 20000 },
@@ -82,26 +86,17 @@ export const RPCLimits: {
   "Avalanche C-Chain": {
     queriesLimit: 0.5,
     maxRange: {
-      "pairs-univ2": 5000,
-      "market-univ2": 500
-    },        timeout: 100000,
+      "pairs-univ2": 2000,
+      "market-univ2": 500,
+    },
+    timeout: 100000,
     timeoutPlus: 2000,
   },
 };
 
-export async function main(settings: any) {
+export async function main(settings: any, data: any[]) {
   const proxies = await loadProxies(10);
   const supabase = new MetaSupabase();
-
-  const { data, error } = (await supabase
-    .from("assets")
-    .select(
-      "contracts,total_supply_contracts,circulating_supply_addresses,blockchains,id,name"
-    )
-    .order("created_at", { ascending: false })
-    .match({ name: settings.asset })) as any;
-
-  console.info(!data, error);
 
   for (let i = 0; i < data.length; i++) {
     currentAsset = data[i];
@@ -117,7 +112,7 @@ export async function main(settings: any) {
         .update({ tried: true })
         .match({ id: data[i].id });
 
-      console.log("Updated asset.");
+      console.log("Updated asset. Iterating...");
 
       if (data[i].blockchains && data[i].blockchains.length > 0) {
         console.log("Calling sharded pairs.");
@@ -402,7 +397,7 @@ export async function main(settings: any) {
               }
             }
           } else {
-             bufferMarketCapHistory =
+            bufferMarketCapHistory =
               data[i].total_supply_contracts?.length > 0
                 ? {
                     market_cap_history: market_cap_history.filter(
@@ -411,7 +406,7 @@ export async function main(settings: any) {
                   }
                 : {};
 
-             bufferMarketCapRecent =
+            bufferMarketCapRecent =
               data[i].total_supply_contracts?.length > 0
                 ? {
                     market_cap_history: {
@@ -425,99 +420,104 @@ export async function main(settings: any) {
           }
 
           if (settings.isPushingToDB) {
-            const {ath, atl, ath_volume, ath_liquidity, listed_at} = getMarketMetaData(
-              price_history,
-              volume_history,
-              liquidity_history,
-            );
-  
+            const { ath, atl, ath_volume, ath_liquidity, listed_at } =
+              getMarketMetaData(
+                price_history,
+                volume_history,
+                liquidity_history
+              );
+
             await supabase
-            .from("history")
-            .delete()
-            .match({ asset: data[i].id });
-  
-          const { data: historyData, error: historyError } = await supabase
-            .from("history")
-            .insert({
-              liquidity_history: liquidity_history.filter(
-                (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
-              ),
-  
-              price_history: price_history.filter(
-                (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
-              ),
-              volume_history: volume_history.filter(
-                (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
-              ),
-              total_volume_history: total_volume_history.filter(
-                (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
-              ),
-              asset: data[i].id,
-              ...bufferMarketCapHistory,
-            })
-            .match({ asset: data[i].id });
-  
-          console.log(historyData);
-          console.log(historyError);
-  
-          const { data: assetData, error: assetError } = await supabase
-            .from("assets")
-            .update({
-              liquidity_history: {
-                liquidity: liquidity_history.filter(
-                  (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+              .from("history")
+              .delete()
+              .match({ asset: data[i].id });
+
+            const { data: historyData, error: historyError } = await supabase
+              .from("history")
+              .insert({
+                liquidity_history: liquidity_history.filter(
+                  (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
                 ),
-              },
-              price_history: {
-                price: price_history.filter(
-                  (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+
+                price_history: price_history.filter(
+                  (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
                 ),
-              },
-              volume_history: {
-                volume: volume_history.filter(
-                  (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                volume_history: volume_history.filter(
+                  (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
                 ),
-              },
-              total_volume_history: {
-                total_volume: total_volume_history.filter(
-                  (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                total_volume_history: total_volume_history.filter(
+                  (entry) => entry[0] < Date.now() - 1000 * 60 * 60 * 24 * 7
                 ),
-              },
-              processed: true,
-              price: price_history[price_history.length - 1]?.[1] || 0,
-              total_volume: Math.round(
-                total_volume_history[total_volume_history.length - 1]?.[1] ||
-                  0
-              ),
-              liquidity: Math.round(
-                liquidity_history[liquidity_history.length - 1]?.[1] || 0
-              ),
-              market_cap: Math.round(
-                market_cap_history[market_cap_history.length - 1]?.[1] || 0
-              ),
-              volume: Math.round(
-                volume_history[volume_history.length - 1]?.[1] || 0
-              ),
-              tracked:
-                liquidity_history[liquidity_history.length - 1]?.[1] !==
-                  undefined &&
-                liquidity_history[liquidity_history.length - 1]?.[1] > 500,
-              history_loaded: true,
-              ath,
-              atl,
-              ath_volume,
-              ath_liquidity,
-              listed_at: new Date(listed_at).toISOString(),
-              ...bufferMarketCapRecent,
-            })
-            .match({ id: data[i].id });
-  
-          console.log(JSON.stringify(assetData));
-          console.log(JSON.stringify(assetError));
-          console.log("Done with asset.");
+                asset: data[i].id,
+                ...bufferMarketCapHistory,
+              })
+              .match({ asset: data[i].id });
+
+            console.log(historyData);
+            console.log(historyError);
+
+            const { data: assetData, error: assetError } = await supabase
+              .from("assets")
+              .update({
+                liquidity_history: {
+                  liquidity: liquidity_history.filter(
+                    (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                  ),
+                },
+                price_history: {
+                  price: price_history.filter(
+                    (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                  ),
+                },
+                volume_history: {
+                  volume: volume_history.filter(
+                    (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                  ),
+                },
+                total_volume_history: {
+                  total_volume: total_volume_history.filter(
+                    (entry) => entry[0] > Date.now() - 1000 * 60 * 60 * 24 * 7
+                  ),
+                },
+                processed: true,
+                price: price_history[price_history.length - 1]?.[1] || 0,
+                total_volume: Math.round(
+                  total_volume_history[total_volume_history.length - 1]?.[1] ||
+                    0
+                ),
+                liquidity: Math.round(
+                  liquidity_history[liquidity_history.length - 1]?.[1] || 0
+                ),
+                market_cap: Math.round(
+                  market_cap_history[market_cap_history.length - 1]?.[1] || 0
+                ),
+                volume: Math.round(
+                  volume_history[volume_history.length - 1]?.[1] || 0
+                ),
+                tracked:
+                  liquidity_history[liquidity_history.length - 1]?.[1] !==
+                    undefined &&
+                  liquidity_history[liquidity_history.length - 1]?.[1] > 500,
+                history_loaded: true,
+                ath,
+                atl,
+                ath_volume,
+                ath_liquidity,
+                listed_at: new Date(listed_at).toISOString(),
+                ...bufferMarketCapRecent,
+              })
+              .match({ id: data[i].id });
+
+            console.log(JSON.stringify(assetData));
+            console.log(JSON.stringify(assetError));
+            console.log("Done with asset.");
+
+            try {
+              await pushPairs(data[i].id);
+            } catch (e) {
+              console.log("Error while pushing pairs", e);
+            }
           }
-
-
         }
       }
 

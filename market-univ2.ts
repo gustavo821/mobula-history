@@ -93,7 +93,6 @@ export async function getMarketData(
       return [entry.name, entry.price.concat(entry.recent_price)];
     })
   );
-  
 
   const liquidity_per_blockchain = new Map(
     blockchains.map((blockchain) => {
@@ -156,7 +155,7 @@ export async function getMarketData(
           proxies,
           name: contracts[i] + "-" + "market.json",
           id,
-          type: 'market-univ2'
+          type: "market-univ2",
         });
       }
     }
@@ -244,10 +243,19 @@ export async function getMarketData(
                 console.log(magenta("Need to push a new entry in history."));
                 for (let q = latestHistoryBlock.index; q < blocks.length; q++) {
                   console.log("Fetching new history block", blocks[q][1]);
-                  if (blocks[q][1] > entry.blockNumber) {
+                  if (
+                    blocks[q][1] > entry.blockNumber ||
+                    q + 1 >= blocks.length
+                  ) {
                     latestHistoryBlock.index = q;
                     latestHistoryBlock.number = blocks[q][1];
                     latestHistoryBlock.timestamp = blocks[q][0];
+                    console.log(
+                      "Setting history latest block",
+                      JSON.stringify(latestHistoryBlock),
+                      blocks[q][1] > entry.blockNumber,
+                      q + 1 >= blocks.length
+                    );
                     break;
                   }
 
@@ -279,30 +287,35 @@ export async function getMarketData(
                       totalVolume += freshPair.pairData.volumeUSD;
                       averagePrice +=
                         freshPair.priceUSD * freshPair.pairData.reserveUSD;
-                      // console.log("Considering pair ", freshPair.address);
-                      // console.log(
-                      //   JSON.stringify(
-                      //     freshPair,
-                      //     (key, value) =>
-                      //       typeof value === "bigint" ? value.toString() : value // return everything else unchanged
-                      //   )
-                      // );
-                    } else if (
-                      !isNaN(freshPair.numberReserve as number)
-                    ) {
-                      // console.log('Considering untracked pair', JSON.stringify(
-                      //   freshPair,
-                      //   (key, value) =>
-                      //     typeof value === "bigint" ? value.toString() : value // return everything else unchanged
-                      // ) )
+                      console.log("Considering pair ", freshPair.address);
+                      console.log(
+                        JSON.stringify(
+                          freshPair,
+                          (key, value) =>
+                            typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                        )
+                      );
+                    } else if (!isNaN(freshPair.numberReserve as number)) {
+                      console.log(
+                        "Considering untracked pair",
+                        JSON.stringify(
+                          freshPair,
+                          (key, value) =>
+                            typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                        )
+                      );
                       totalUntrackedLiquidity += freshPair.numberReserve!;
                       totalVolume += freshPair.pairData.volumeUSD;
                     } else {
-                      // console.log(JSON.stringify(
-                      //   freshPair,
-                      //   (key, value) =>
-                      //     typeof value === "bigint" ? value.toString() : value // return everything else unchanged
-                      // ) , freshPair.numberReserve ,isNaN(freshPair.numberReserve as number) )
+                      console.log(
+                        JSON.stringify(
+                          freshPair,
+                          (key, value) =>
+                            typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                        ),
+                        freshPair.numberReserve,
+                        isNaN(freshPair.numberReserve as number)
+                      );
                     }
                   }
 
@@ -384,13 +397,8 @@ export async function getMarketData(
                   // if (price_history.length > 20) process.exit();
                 }
                 // }
-              } else {
-                // console.log(
-                //   "Now vs History : ",
-                //   entry.blockNumber,
-                //   latestHistoryBlock.number
-                // );
               }
+
               // console.log("Start liquidity ", pair.pairData.reserveUSD);
 
               if (entry.topics[0] == swapEvent) {
@@ -666,8 +674,12 @@ export async function getMarketData(
           let daysPassed: [number, number][] = [];
 
           console.log(
-            magenta("Need to push a new lastEntry in history. (end)")
+            magenta(
+              "Need to push a new lastEntry in history. (end)\n" +
+                JSON.stringify(latestHistoryBlock)
+            )
           );
+
           for (let q = latestHistoryBlock.index; q < blocks.length; q++) {
             console.log("Fetching new history block", blocks[q][1]);
 
@@ -708,14 +720,14 @@ export async function getMarketData(
                 averagePrice +=
                   freshPair.priceUSD * freshPair.pairData.reserveUSD;
                 console.log("Considering pair ", freshPair.address);
-                console.log( JSON.stringify(
-                  freshPair,
-                  (key, value) =>
-                    typeof value === "bigint" ? value.toString() : value // return everything else unchanged
-                ));
-              } else if (
-                !isNaN(freshPair.numberReserve as number) 
-              ) {
+                console.log(
+                  JSON.stringify(
+                    freshPair,
+                    (key, value) =>
+                      typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                  )
+                );
+              } else if (!isNaN(freshPair.numberReserve as number)) {
                 totalUntrackedLiquidity += freshPair.numberReserve!;
                 totalVolume += freshPair.pairData.volumeUSD;
               }
@@ -838,7 +850,6 @@ export async function getMarketData(
     }
   }
 
-
   for (let i = 0; i < liquidity_per_blockchain.get(earliest)!.length; i++) {
     let liquidity = liquidity_per_blockchain.get(earliest)![i][1];
     let averagePrice = price_per_blockchain.get(earliest)![i][1] * liquidity;
@@ -850,11 +861,11 @@ export async function getMarketData(
       liquidity
     );
     for (const blockchain of blockchains) {
-      const index = fetchEntry(liquidity_per_blockchain.get(blockchain)!, liquidity_per_blockchain.get(earliest)![i][0])
-      if (
-        blockchain != earliest &&
-        index !== null
-      ) {
+      const index = fetchEntry(
+        liquidity_per_blockchain.get(blockchain)!,
+        liquidity_per_blockchain.get(earliest)![i][0]
+      );
+      if (blockchain != earliest && index !== null) {
         liquidity += liquidity_per_blockchain.get(blockchain)![index][1];
         averagePrice +=
           price_per_blockchain.get(blockchain)![index][1] *
