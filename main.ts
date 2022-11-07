@@ -3,6 +3,7 @@ import { loadProxies } from "./MagicWeb3";
 import { getMarketData } from "./market-univ2";
 import { getMarketMetaData } from "./meta-market";
 import { findAllPairs } from "./pairs-univ2";
+import { loadDecimals } from "./push-decimals";
 import { pushPairs } from "./push-pairs";
 import {
   getShardedPairsFromAddresses,
@@ -514,6 +515,12 @@ export async function main(settings: any, data: any[]) {
 
             try {
               await pushPairs(data[i].id);
+            } catch (e) {
+              console.log("Error while pushing pairs", e);
+            }
+
+            try {
+              await loadDecimals(data[i]);
             } catch (e) {
               console.log("Error while pushing pairs", e);
             }
