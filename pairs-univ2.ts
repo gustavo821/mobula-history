@@ -12,7 +12,7 @@ import { loadOnChainData } from "./load";
 import { MagicWeb3 } from "./MagicWeb3";
 import { RPCLimits } from "./main";
 import { Blockchain, Pair } from "./types";
-import { shouldLoad } from "./utils";
+import { getBlockToTimestamp, shouldLoad } from "./utils";
 
 export async function findAllPairs(
   proxies: string[],
@@ -138,6 +138,14 @@ export async function findAllPairs(
 
                   console.log(green("Pushing new pair"));
 
+                  //timestamps must be * 1000 otherwise the date will be wrong!!!!
+                  const creationTimestamp = await getBlockToTimestamp(
+                    new MagicWeb3(supportedRPCs[blockchains[i]][0], [
+                      proxies[Math.floor(Math.random() * proxies.length)],
+                    ]),
+                    pair.blockNumber
+                  );
+
                   formattedPairs.push({
                     address:
                       "0x" +
@@ -174,7 +182,8 @@ export async function findAllPairs(
                       reserve1: 0 as unknown as bigint,
                       reserveUSD: 0,
                     },
-                    createdAt: pair.blockNumber,
+                    createdAt: creationTimestamp,
+                    createdAtBlock: Number(pair.blockNumber),
                     priceUSD: 0,
                   });
                   succeed = true;

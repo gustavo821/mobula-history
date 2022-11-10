@@ -215,7 +215,10 @@ export async function main(settings: any, data: any[]) {
                             ? data[i].id
                             : null,
                         pair_data: entry.pairData,
-                        created_at: new Date(entry.createdAt).toISOString(),
+                        created_at_date: new Date(
+                          entry.createdAt
+                        ).toISOString(), //make sure to push * 1000 !!
+                        created_at_block: entry.createdAtBlock,
                         blockchain: data[i].blockchains[j],
                       })
                   )
@@ -247,7 +250,8 @@ export async function main(settings: any, data: any[]) {
                   decimals: pairs[j].token1_decimals,
                 },
                 pairData: pairs[j].pair_data,
-                createdAt: pairs[j].created_at,
+                createdAt: pairs[j].created_at_date,
+                createdAtBlock: pairs[j].created_at_block,
                 priceUSD:
                   pairs[j].token0_id == data[i].id
                     ? pairs[j].token0_priceUSD
@@ -268,7 +272,8 @@ export async function main(settings: any, data: any[]) {
                     decimals: pairs[j].token1_decimals,
                   },
                   pairData: pairs[j].pair_data,
-                  createdAt: pairs[j].created_at,
+                  createdAt: pairs[j].created_at_date,
+                  createdAtBlock: pairs[j].created_at_block,
                   priceUSD:
                     pairs[j].token0_id == data[i].id
                       ? pairs[j].token0_priceUSD

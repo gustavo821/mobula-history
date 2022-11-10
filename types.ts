@@ -33,4 +33,5 @@ export interface Pair {
   numberReserve?: number;
   priceUSD: number;
   createdAt: number;
+  createdAtBlock: number;
 }

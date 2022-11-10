@@ -4,11 +4,12 @@ import fs from "fs";
 import config from "./config";
 import { DEAD_WALLETS, providers } from "./constants/crypto";
 import { readLastChar } from "./files";
+import { MagicWeb3 } from "./MagicWeb3";
 export const restartSettings = {
   block: parseInt(config.BLOCK) || 0,
   restart: config.RESTART === "true",
   debug: false,
-  noRestart: false
+  noRestart: false,
 };
 
 export const sendSlackMessage = async (channel: string, text: string) => {
@@ -168,9 +169,81 @@ export async function getCirculatingSupply(
 
 export const types = ["liquidity", "volume", "price", "total_volume"];
 
-export function fetchEntry(entry: [number, number][], timestamp: number): number | null {
+export function fetchEntry(
+  entry: [number, number][],
+  timestamp: number
+): number | null {
   for (let i = 0; i < entry.length; i++) {
-    if (entry[i][0] === timestamp) return i
+    if (entry[i][0] === timestamp) return i;
   }
   return null;
+}
+
+export async function getBlockToTimestamp(
+  magicProvider: MagicWeb3,
+  blockNumber: number
+): Promise<number> {
+  const blockResponses: any[] = [];
+  let blockTimestamp = 0;
+  console.log(`getBlockToTimestamp(): should fetch block ${blockNumber}`);
+  blockResponses.push(
+    new Promise(async (resolveTop) => {
+      let errCount = 0;
+      let fetchedBlock = false;
+      while (!fetchedBlock) {
+        try {
+          fetchedBlock = await new Promise(async (resolveBlock) => {
+            try {
+              const TO = setTimeout(() => {
+                console.log(
+                  `getBlockToTimestamp(): timeout for block ${blockNumber}, re-fetching...`
+                );
+                resolveBlock(false);
+              }, 5000);
+
+              const bufferBlock = await magicProvider
+                .eth()
+                .getBlock(blockNumber);
+              if (bufferBlock?.number && bufferBlock?.timestamp) {
+                blockTimestamp = Number(bufferBlock.timestamp) * 1000;
+                clearTimeout(TO);
+                resolveBlock(true);
+              } else {
+                errCount++;
+                clearTimeout(TO);
+                resolveBlock(false);
+              }
+            } catch (e: any) {
+              if (errCount > 20) {
+                process.exit(666);
+              }
+              errCount++;
+              console.error(
+                `getBlockToTimestamp() error in inner promise, re-trying... ${
+                  e?.message ? e.message : e
+                }`
+              );
+            }
+          });
+        } catch (e: any) {
+          if (errCount > 20) {
+            process.exit(666);
+          }
+          errCount++;
+          console.error(
+            `getBlockToTimestamp() handled error: ${e?.message ? e.message : e}`
+          );
+        }
+
+        if (errCount > 20) {
+          process.exit(666);
+        }
+      }
+      resolveTop(null);
+    })
+  );
+
+  await Promise.all(blockResponses);
+
+  return blockTimestamp;
 }
