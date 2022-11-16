@@ -127,7 +127,11 @@ export async function getMarketData(
   for (let i = 0; i < contracts.length; i++) {
     if (RPCLimits[blockchains[i]] && pairs[i]) {
       // console.log(pairs, i);
-      const tokenGenesis = 0; // HOTFIX: createdAt is broken. Math.min(...pairs[i].map((pair) => pair.createdAt));
+      const tokenGenesis =
+        Math.min(...pairs[i].map((pair) => pair.createdAtBlock)) || 0;
+
+      console.log("Token Genesis: " + tokenGenesis);
+
       console.log(
         JSON.stringify({
           topics: [[swapEvent, syncEvent]],
