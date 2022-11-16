@@ -126,7 +126,10 @@ export async function main(settings: any, data: any[]) {
         );
         console.info("Loading data for asset " + data[i].name, settings);
 
-        if (settings.isLoadingPairs) {
+        if (
+          settings.isLoadingPairs === true ||
+          (!data[i].pairs_loaded && settings.isLoadingPairs === "default")
+        ) {
           console.log("Loading pairs...");
           pairs = await findAllPairs(
             proxies,
