@@ -140,9 +140,7 @@ export async function findAllPairs(
 
                   //timestamps must be * 1000 otherwise the date will be wrong!!!!
                   const creationTimestamp = await getBlockToTimestamp(
-                    new MagicWeb3(supportedRPCs[blockchains[i]][0], [
-                      proxies[Math.floor(Math.random() * proxies.length)],
-                    ]),
+                    new MagicWeb3(supportedRPCs[blockchains[i]][0], proxies),
                     pair.blockNumber
                   );
 
