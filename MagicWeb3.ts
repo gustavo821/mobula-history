@@ -27,16 +27,34 @@ export class MagicWeb3 {
     // setInterval(() => this.fetchProxies(), 60000);
   }
 
-  eth() {
+  eth(log = false) {
     const proxy = this.proxies[this.index % this.proxies.length];
+    const rpc = this.rpcs[Math.floor(Math.random() * this.rpcs.length)];
     this.index++;
     // console.log('Fetching with ', proxy)
-    return new Web3(
+    const web3 = new Web3(
       new (Web3HttpProvider as any)(
-        this.rpcs[Math.floor(Math.random() * this.rpcs.length)],
+        rpc,
         (proxy ? { agent: { https: new HttpsProxyAgent(proxy) } } : {}) as any
       )
     ).eth;
+
+    return web3;
+  }
+
+  logEth() {
+    const proxy = this.proxies[this.index % this.proxies.length];
+    const rpc = this.rpcs[Math.floor(Math.random() * this.rpcs.length)];
+    this.index++;
+    // console.log('Fetching with ', proxy)
+    const eth = new Web3(
+      new (Web3HttpProvider as any)(
+        rpc,
+        (proxy ? { agent: { https: new HttpsProxyAgent(proxy) } } : {}) as any
+      )
+    ).eth;
+
+    return { eth, proxy, rpc };
   }
 
   contract(abi: AbiItem | AbiItem[], address: string) {
@@ -104,9 +122,9 @@ export class MagicWeb3 {
   }
 }
 
-export const loadProxies = async (pages: number) => {
+export const loadProxies = async (pages: number, offset = 1) => {
   let data: string[] = [];
-  for (let i = 1; i <= pages; i++) {
+  for (let i = offset; i <= pages + offset - 1; i++) {
     data = data.concat(
       (
         await axios.get("https://proxy.webshare.io/api/proxy/list/?page=" + i, {

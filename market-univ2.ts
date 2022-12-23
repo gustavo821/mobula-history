@@ -4,7 +4,7 @@ import { chain } from "stream-chain";
 import { parser } from "stream-json";
 import { pick } from "stream-json/filters/Pick";
 import { streamArray } from "stream-json/streamers/StreamArray";
-import { swapEvent, syncEvent } from "./constants/crypto";
+import { factoryWhitelist, swapEvent, syncEvent } from "./constants/crypto";
 import { readLastBlock } from "./files";
 import { loadOnChainData } from "./load";
 import { RPCLimits } from "./main";
@@ -118,11 +118,11 @@ export async function getMarketData(
     })
   );
 
-  const liquidity_history: [number, number][] = [];
-  const market_cap_history: [number, number][] = [];
-  const price_history: [number, number][] = [];
-  const volume_history: [number, number][] = [];
-  const total_volume_history: [number, number][] = [];
+  let liquidity_history: [number, number][] = [];
+  let market_cap_history: [number, number][] = [];
+  let price_history: [number, number][] = [];
+  let volume_history: [number, number][] = [];
+  let total_volume_history: [number, number][] = [];
 
   for (let i = 0; i < contracts.length; i++) {
     if (RPCLimits[blockchains[i]] && pairs[i]) {
@@ -214,7 +214,7 @@ export async function getMarketData(
             const pair = pairsMap.get(entry.address.toLowerCase())!;
             const clearData = entry.data.split("0x")[1];
 
-            if (pair) {
+            if (pair && factoryWhitelist[pair.factory!]) {
               // console.log(
               //   yellow(
               //     "New entry detected at block " +
@@ -662,6 +662,13 @@ export async function getMarketData(
               console.log(
                 red("New entry with no pair associated " + entry.address)
               );
+              console.log(
+                JSON.stringify(
+                  pair,
+                  (key, value) =>
+                    typeof value === "bigint" ? value.toString() : value // return everything else unchanged
+                )
+              );
             }
           }
         });
@@ -906,6 +913,11 @@ export async function getMarketData(
       total_volume,
     ]);
   }
+
+  // Cleaning entries from 0
+
+  liquidity_history = liquidity_history.filter((entry) => entry[1] > 0);
+  price_history = price_history.filter((entry) => entry[1] > 0);
 
   return {
     liquidity_history,

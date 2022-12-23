@@ -7,7 +7,7 @@ import { readLastChar } from "./files";
 import { MagicWeb3 } from "./MagicWeb3";
 export const restartSettings = {
   block: parseInt(config.BLOCK) || 0,
-  restart: config.RESTART === "true",
+  restart: true, // config.RESTART === "true",
   debug: false,
   noRestart: false,
 };

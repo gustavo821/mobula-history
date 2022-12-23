@@ -19,7 +19,7 @@ const settings = {
     )
     .order("market_cap", { ascending: false })
     .not("contracts", "eq", "{}")
-    .match({ history_loaded: false })
+    .match({ name: "Tether" })
     .limit(100)) as any;
 
   // console.info(data);

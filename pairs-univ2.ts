@@ -5,6 +5,7 @@ import {
   createPairEvent,
   ERC20ABI,
   supportedRPCs,
+  uniswapV2ABI,
   WETHAndStables,
 } from "./constants/crypto";
 import { readLastBlock } from "./files";
@@ -144,6 +145,47 @@ export async function findAllPairs(
                     pair.blockNumber
                   );
 
+                  let factory: string | null = null;
+
+                  console.log("Fetching factory");
+                  try {
+                    factory = await new MagicWeb3(
+                      supportedRPCs[blockchains[i]][0],
+                      [proxies[Math.floor(Math.random() * proxies.length)]]
+                    )
+                      .contract(
+                        uniswapV2ABI as AbiItem[],
+                        "0x" +
+                          pair.data
+                            .split("0x000000000000000000000000")[1]
+                            .slice(0, 40)
+                      )
+                      .methods.factory()
+                      .call();
+                  } catch (e) {
+                    console.log(e);
+                  }
+
+                  console.log("Fetched factory", factory);
+
+                  try {
+                    factory = await new MagicWeb3(
+                      supportedRPCs[blockchains[i]][0],
+                      [proxies[Math.floor(Math.random() * proxies.length)]]
+                    )
+                      .contract(
+                        uniswapV2ABI as AbiItem[],
+                        "0x" +
+                          pair.data
+                            .split("0x000000000000000000000000")[1]
+                            .slice(0, 40)
+                      )
+                      .methods.FACTORY()
+                      .call();
+                  } catch (e) {
+                    console.log(e);
+                  }
+
                   formattedPairs.push({
                     address:
                       "0x" +
@@ -183,6 +225,7 @@ export async function findAllPairs(
                     createdAt: creationTimestamp,
                     createdAtBlock: Number(pair.blockNumber),
                     priceUSD: 0,
+                    factory: factory || null,
                   });
                   succeed = true;
                 } catch (e) {

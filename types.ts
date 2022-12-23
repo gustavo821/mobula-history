@@ -34,4 +34,5 @@ export interface Pair {
   priceUSD: number;
   createdAt: number;
   createdAtBlock: number;
+  factory: string | null;
 }

@@ -25,53 +25,70 @@ console.log = (...params) => {
 
 export const RPCLimits: {
   [index: string]: {
-    queriesLimit: number;
-    maxRange: { [index: string]: number };
+    queriesLimit: { default: number; hardcore: number };
+    maxRange: {
+      [index: string]: { default: number; hardcore: number };
+    };
     timeout: number;
     timeoutPlus: number;
   };
 } = {
   "BNB Smart Chain (BEP20)": {
-    queriesLimit: 0.5,
+    queriesLimit: {
+      default: 1,
+      hardcore: 0.25,
+    },
     maxRange: {
-      "pairs-univ2": 5000,
-      "market-univ2": 500,
+      "pairs-univ2": { default: 5000, hardcore: 5000 },
+      "market-univ2": { default: 1250, hardcore: 10 },
     },
     timeout: 30000,
     timeoutPlus: 3000,
   },
   Polygon: {
-    queriesLimit: 0.5,
+    queriesLimit: {
+      default: 1,
+      hardcore: 0.25,
+    },
     maxRange: {
-      "pairs-univ2": 5000,
-      "market-univ2": 500,
+      "pairs-univ2": { default: 5000, hardcore: 5000 },
+      "market-univ2": { default: 1250, hardcore: 25 },
     },
     timeout: 100000,
-    timeoutPlus: 2000,
+    timeoutPlus: 20000,
   },
   Ethereum: {
-    queriesLimit: 0.5,
+    queriesLimit: {
+      default: 1,
+      hardcore: 0.25,
+    },
     maxRange: {
-      "pairs-univ2": 5000,
-      "market-univ2": 150,
+      "pairs-univ2": { default: 5000, hardcore: 5000 },
+      "market-univ2": { default: 1250, hardcore: 25 },
     },
     timeout: 100000,
-    timeoutPlus: 2000,
+    timeoutPlus: 20000,
   },
   Fantom: {
-    queriesLimit: 0.5,
+    queriesLimit: {
+      default: 1,
+      hardcore: 0.25,
+    },
     maxRange: {
-      "pairs-univ2": 5000,
-      "market-univ2": 500,
+      "pairs-univ2": { default: 5000, hardcore: 5000 },
+      "market-univ2": { default: 1250, hardcore: 25 },
     },
     timeout: 100000,
-    timeoutPlus: 2000,
+    timeoutPlus: 20000,
   },
   Cronos: {
-    queriesLimit: 0.5,
+    queriesLimit: {
+      default: 1,
+      hardcore: 0.25,
+    },
     maxRange: {
-      "pairs-univ2": 2000,
-      "market-univ2": 500,
+      "pairs-univ2": { default: 2000, hardcore: 2000 },
+      "market-univ2": { default: 1250, hardcore: 25 },
     },
     timeout: 100000,
     timeoutPlus: 2000,
@@ -85,10 +102,13 @@ export const RPCLimits: {
   // },
   // 'Aurora': { queriesLimit: 4, maxRange: 5000, timeout: 3000, timeoutPlus: 2000 },
   "Avalanche C-Chain": {
-    queriesLimit: 0.5,
+    queriesLimit: {
+      default: 1,
+      hardcore: 0.25,
+    },
     maxRange: {
-      "pairs-univ2": 2000,
-      "market-univ2": 500,
+      "pairs-univ2": { default: 2000, hardcore: 2000 },
+      "market-univ2": { default: 1250, hardcore: 25 },
     },
     timeout: 100000,
     timeoutPlus: 2000,
@@ -96,7 +116,7 @@ export const RPCLimits: {
 };
 
 export async function main(settings: any, data: any[]) {
-  const proxies = await loadProxies(10);
+  const proxies = await loadProxies(5, 5);
   const supabase = new MetaSupabase();
 
   for (let i = 0; i < data.length; i++) {
@@ -164,29 +184,33 @@ export async function main(settings: any, data: any[]) {
 
           for (let j = 0; j < pairs.length; j++) {
             for (let k = 0; k < pairs[j].length; k++) {
-              const entry = pairs[j][k];
+              const entry: Pair = pairs[j][k];
               const index = existingPairs
                 .map((entry) => entry.address)
                 .indexOf(entry.address);
               /** Signifies that the address is inlcuded in the existing addresses */
               if (index >= 0) {
                 console.log("The pair does exist, modifying.");
+                const update: any = {
+                  token0_id:
+                    entry.token0.address.toLowerCase() ==
+                    data[i].contracts[j].toLowerCase()
+                      ? data[i].id
+                      : existingPairs[index].token0_id,
+                  token1_id:
+                    entry.token1.address.toLowerCase() ==
+                    data[i].contracts[j].toLowerCase()
+                      ? data[i].id
+                      : existingPairs[index].token1_id,
+                };
+                if (entry.factory) {
+                  update.factory = entry.factory;
+                }
                 console.log(
                   JSON.stringify(
                     await supabase
                       .from("0x" + entry.address.toLowerCase()[2])
-                      .update({
-                        token0_id:
-                          entry.token0.address.toLowerCase() ==
-                          data[i].contracts[j].toLowerCase()
-                            ? data[i].id
-                            : existingPairs[index].token0_id,
-                        token1_id:
-                          entry.token1.address.toLowerCase() ==
-                          data[i].contracts[j].toLowerCase()
-                            ? data[i].id
-                            : existingPairs[index].token1_id,
-                      })
+                      .update(update)
                       .match({ address: entry.address })
                   )
                 );
@@ -223,6 +247,7 @@ export async function main(settings: any, data: any[]) {
                         ).toISOString(), //make sure to push * 1000 !!
                         created_at_block: entry.createdAtBlock,
                         blockchain: data[i].blockchains[j],
+                        factory: entry.factory,
                       })
                   )
                 );
@@ -259,6 +284,7 @@ export async function main(settings: any, data: any[]) {
                   pairs[j].token0_id == data[i].id
                     ? pairs[j].token0_priceUSD
                     : pairs[j].token1_priceUSD,
+                factory: pairs[j].factory,
               });
             } else {
               pairs[pairs[j].blockchain] = [
@@ -281,6 +307,7 @@ export async function main(settings: any, data: any[]) {
                     pairs[j].token0_id == data[i].id
                       ? pairs[j].token0_priceUSD
                       : pairs[j].token1_priceUSD,
+                  factory: pairs[j].factory,
                 },
               ];
             }

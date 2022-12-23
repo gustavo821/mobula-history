@@ -36,6 +36,8 @@ export async function loadOnChainData({
       genesis = restartSettings.block;
       console.log("Updated genesis = " + genesis);
     }
+    const mode =
+      address?.length && address?.length > 10000 ? "hardcore" : "default";
 
     const supabase = new MetaSupabase();
 
@@ -47,11 +49,16 @@ export async function loadOnChainData({
     const latestBlock = await getForSure(normalWeb3.eth.getBlock("latest"));
     const iterationsNeeded =
       (latestBlock.number - genesis) /
-      RPCLimits[blockchain].maxRange[type] /
-      RPCLimits[blockchain].queriesLimit /
+      RPCLimits[blockchain].maxRange[type][mode] /
+      RPCLimits[blockchain].queriesLimit[mode] /
       (proxies.length * Math.min(supportedRPCs[blockchain].length, 2));
 
     if (!restartSettings.restart || !fs.existsSync("logs/" + name)) {
+      console.log(
+        "About to open data file",
+        !restartSettings.restart,
+        !fs.existsSync("logs/" + name)
+      );
       openDataFile(name);
     } else {
       console.log("Not opening data file as already starting.");
@@ -96,10 +103,18 @@ export async function loadOnChainData({
           : "Fetching all on-chain events (new model)"
       );
 
+      const addresses: { [index: string]: boolean } = {};
+
+      if (address && address.length) {
+        for (const entry of address) {
+          addresses[entry] = true;
+        }
+      }
+
       for (
         let j = k;
         j < k + (latestBlock.number - genesis) / iterationsNeeded;
-        j += RPCLimits[blockchain].maxRange[type]
+        j += RPCLimits[blockchain].maxRange[type][mode]
       ) {
         calls.push(
           new Promise((resolve) => {
@@ -110,7 +125,7 @@ export async function loadOnChainData({
                 pushed = true;
                 needToRecall.push({
                   fromBlock: j,
-                  toBlock: j + RPCLimits[blockchain].maxRange[type],
+                  toBlock: j + RPCLimits[blockchain].maxRange[type][mode],
                   type: "pair",
                 });
               }
@@ -120,7 +135,9 @@ export async function loadOnChainData({
               .eth()
               .getPastLogs({
                 fromBlock: Math.floor(j),
-                toBlock: Math.floor(j + RPCLimits[blockchain].maxRange[type]),
+                toBlock: Math.floor(
+                  j + RPCLimits[blockchain].maxRange[type][mode]
+                ),
                 address: address
                   ? address.length > 10000
                     ? undefined
@@ -133,7 +150,7 @@ export async function loadOnChainData({
                   pushed = true;
                   needToRecall.push({
                     fromBlock: j,
-                    toBlock: j + RPCLimits[blockchain].maxRange[type],
+                    toBlock: j + RPCLimits[blockchain].maxRange[type][mode],
                     type: "pair",
                   });
                 }
@@ -158,18 +175,19 @@ export async function loadOnChainData({
           // @ts-ignore
           if ((entry?.length || 0) > 0) {
             success++;
+            ok++;
             // @ts-ignore
             return entry.filter(
               (reply: Log) =>
                 !address ||
                 address === reply.address ||
-                address?.includes(reply.address.toLowerCase())
+                (addresses && addresses[reply.address.toLowerCase()])
             );
           } else {
             if (entry) ok++;
             return (
               k +
-              index * RPCLimits[blockchain].maxRange[type] +
+              index * RPCLimits[blockchain].maxRange[type][mode] +
               " (" +
               (entry ? "OK" : "ERROR") +
               ")"
@@ -193,7 +211,7 @@ export async function loadOnChainData({
 
       // await new Promise((resolve, reject) => setTimeout(resolve, 3000))
 
-      let bufferRange = RPCLimits[blockchain].maxRange[type];
+      let bufferRange = RPCLimits[blockchain].maxRange[type][mode];
       let iterations = 1;
       let failedIterations = 0;
       let sliced: number = 0;
@@ -205,14 +223,24 @@ export async function loadOnChainData({
         console.log(
           yellow("---------------------------------------------------")
         );
-        const recalls: Promise<Log[] | void | string>[] = [];
+
+        interface LogError {
+          reason: string;
+          rpc: string;
+        }
+
+        const recalls: Promise<Log[] | void | LogError>[] = [];
         const blocRange = Math.floor(
-          RPCLimits[blockchain].maxRange[type] /
+          RPCLimits[blockchain].maxRange[type][mode] /
             2 /
             Math.ceil(
               (proxies.length *
                 supportedRPCs[blockchain].length *
-                RPCLimits[blockchain].queriesLimit) /
+                RPCLimits[blockchain].queriesLimit[
+                  address?.length && address?.length > 10000
+                    ? "hardcore"
+                    : "default"
+                ]) /
                 needToRecall.length
             )
         );
@@ -261,6 +289,8 @@ export async function loadOnChainData({
                 new Promise((resolve) => {
                   let pushed = false;
 
+                  const { eth, proxy, rpc } = magicWeb3.logEth();
+
                   const id = setTimeout(() => {
                     if (!pushed) {
                       pushed = true;
@@ -270,11 +300,10 @@ export async function loadOnChainData({
                         toBlock: x + bufferRange,
                       });
                     }
-                    resolve("Timeout");
+                    resolve({ reason: "Timeout", rpc });
                   }, RPCLimits[blockchain].timeout + iterations * RPCLimits[blockchain].timeoutPlus);
 
-                  magicWeb3
-                    .eth()
+                  eth
                     .getPastLogs({
                       fromBlock: Math.floor(x),
                       toBlock: Math.floor(x + bufferRange),
@@ -300,19 +329,21 @@ export async function loadOnChainData({
                           e.toString() ==
                             'Error: Invalid JSON RPC response: {"size":0,"timeout":0}'
                         ) {
-                          resolve("Empty");
+                          resolve({ reason: "Empty", rpc });
                         } else if (
                           e.toString().includes("Forbidden") ||
                           e.toString().includes("CONNECTION ERROR") ||
                           e.toString().includes("limit")
                         ) {
-                          resolve("Forbidden");
+                          resolve({ reason: "Forbidden", rpc });
                         } else if (
                           e.toString().includes("CONNECTION TIMEOUT")
                         ) {
-                          resolve("Timeout");
+                          resolve({ reason: "Timeout", rpc });
+                        } else if (e.toString().includes("Internal error")) {
+                          resolve({ reason: "Internal", rpc });
                         } else {
-                          console.log(e.toString());
+                          console.log(e.toString(), proxy, rpc);
                         }
                       }
                     })
@@ -328,29 +359,33 @@ export async function loadOnChainData({
 
         console.log(green(`Created ${recalls.length} calls.`));
 
-        let broken = 0;
         let success = 0;
-        let timeout = 0;
-        let empty = 0;
-        let forbidden = 0;
+        let broken: { [index: string]: number } = {};
+        let timeout: { [index: string]: number } = {};
+        let empty: { [index: string]: number } = {};
+        let forbidden: { [index: string]: number } = {};
 
         const RPCResult = (await Promise.all(recalls)).map((entry, index) => {
           // @ts-ignore
           if (typeof entry != "string" && (entry?.length || 0) > 0) {
             return entry;
-          } else {
-            switch (entry) {
+          } else if (entry && "reason" in entry) {
+            switch (entry.reason) {
               case "Timeout":
-                timeout++;
+                if (!timeout[entry.rpc]) timeout[entry.rpc] = 1;
+                timeout[entry.rpc]++;
                 break;
               case "Empty":
-                empty++;
+                if (!empty[entry.rpc]) empty[entry.rpc] = 1;
+                empty[entry.rpc]++;
                 break;
               case "Forbidden":
-                forbidden++;
+                if (!forbidden[entry.rpc]) forbidden[entry.rpc] = 1;
+                forbidden[entry.rpc]++;
                 break;
               default:
-                broken++;
+                if (!broken[entry.rpc]) broken[entry.rpc] = 1;
+                broken[entry.rpc]++;
                 break;
             }
             return " (" + (typeof entry == "object" ? "OK" : "ERROR") + ")";
@@ -379,7 +414,7 @@ export async function loadOnChainData({
               (entry: Log) =>
                 !address ||
                 address === entry.address ||
-                address?.includes(entry.address)
+                (addresses && addresses[entry.address.toLowerCase()])
             ).length > 0
           ) {
             // console.log('bushibre')
@@ -388,7 +423,7 @@ export async function loadOnChainData({
                 (entry: Log) =>
                   !address ||
                   address === entry.address ||
-                  address?.includes(entry.address.toLowerCase())
+                  (addresses && addresses[entry.address.toLowerCase()])
               )
             );
           } else if (reply && typeof reply != "string") {
@@ -406,18 +441,11 @@ export async function loadOnChainData({
             " events. Success: " +
             success
         );
-        console.log(
-          "Need to recall : " +
-            needToRecall.length +
-            " left. Timeouts : " +
-            timeout +
-            ". Forbidden : " +
-            forbidden +
-            ". Empty : " +
-            empty +
-            ". Others : " +
-            broken
-        );
+        console.log("Need to recall : " + needToRecall.length + " left. ");
+        console.log("Timeouts:", JSON.stringify(timeout));
+        console.log("Forbidden:", JSON.stringify(forbidden));
+        console.log("Empty:", JSON.stringify(empty));
+        console.log("Broken:", JSON.stringify(broken));
 
         if (success === 0) failedIterations++;
         else failedIterations = 0;
