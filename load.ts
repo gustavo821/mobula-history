@@ -112,7 +112,7 @@ export async function loadOnChainData({
       }
 
       for (
-        let j = k;
+        let j = k - 1;
         j < k + (latestBlock.number - genesis) / iterationsNeeded;
         j += RPCLimits[blockchain].maxRange[type][mode]
       ) {
@@ -124,17 +124,18 @@ export async function loadOnChainData({
               if (!pushed) {
                 pushed = true;
                 needToRecall.push({
-                  fromBlock: j,
+                  fromBlock: j + 1,
                   toBlock: j + RPCLimits[blockchain].maxRange[type][mode],
                   type: "pair",
                 });
               }
               resolve();
             }, RPCLimits[blockchain].timeout);
+
             magicWeb3
               .eth()
               .getPastLogs({
-                fromBlock: Math.floor(j),
+                fromBlock: Math.floor(j) + 1,
                 toBlock: Math.floor(
                   j + RPCLimits[blockchain].maxRange[type][mode]
                 ),
@@ -149,7 +150,7 @@ export async function loadOnChainData({
                 if (!pushed) {
                   pushed = true;
                   needToRecall.push({
-                    fromBlock: j,
+                    fromBlock: j + 1,
                     toBlock: j + RPCLimits[blockchain].maxRange[type][mode],
                     type: "pair",
                   });
