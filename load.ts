@@ -113,7 +113,8 @@ export async function loadOnChainData({
 
       for (
         let j = k - 1;
-        j < k + (latestBlock.number - genesis) / iterationsNeeded;
+        j + RPCLimits[blockchain].maxRange[type][mode] <
+        k + (latestBlock.number - genesis) / iterationsNeeded;
         j += RPCLimits[blockchain].maxRange[type][mode]
       ) {
         calls.push(
@@ -158,6 +159,15 @@ export async function loadOnChainData({
               })
               .then((reply) => {
                 clearTimeout(id);
+                console.log(
+                  JSON.stringify({
+                    fromBlock: Math.floor(j) + 1,
+                    toBlock: Math.floor(
+                      j + RPCLimits[blockchain].maxRange[type][mode]
+                    ),
+                    reply,
+                  })
+                );
                 resolve(reply);
               });
           })
