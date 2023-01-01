@@ -15,12 +15,10 @@ import { getCirculatingSupply, sendSlackMessage, types } from "./utils";
 let currentAsset: any;
 
 console.log = (...params) => {
-  if (currentAsset) {
-    fs.appendFileSync(
-      "logs/" + currentAsset.name + ".logs",
-      "\n[" + new Date().toISOString() + "] " + params.join(" ")
-    );
-  }
+  fs.appendFileSync(
+    "logs/" + (currentAsset?.name || "NONAME") + ".logs",
+    "\n[" + new Date().toISOString() + "] " + params.join(" ")
+  );
 };
 
 export const RPCLimits: {
@@ -64,7 +62,7 @@ export const RPCLimits: {
     },
     maxRange: {
       "pairs-univ2": { default: 5000, hardcore: 5000 },
-      "market-univ2": { default: 1250, hardcore: 25 },
+      "market-univ2": { default: 50, hardcore: 25 },
     },
     timeout: 100000,
     timeoutPlus: 20000,
@@ -116,7 +114,7 @@ export const RPCLimits: {
 };
 
 export async function main(settings: any, data: any[]) {
-  const proxies = await loadProxies(5, 5);
+  const proxies = await loadProxies(2, 0);
   const supabase = new MetaSupabase();
 
   for (let i = 0; i < data.length; i++) {
@@ -204,7 +202,9 @@ export async function main(settings: any, data: any[]) {
                       : existingPairs[index].token1_id,
                 };
                 if (entry.factory) {
-                  update.factory = entry.factory;
+                  update.factory = entry.factory
+                    ? entry.factory.toLowerCase()
+                    : null;
                 }
                 console.log(
                   JSON.stringify(
@@ -247,7 +247,9 @@ export async function main(settings: any, data: any[]) {
                         ).toISOString(), //make sure to push * 1000 !!
                         created_at_block: entry.createdAtBlock,
                         blockchain: data[i].blockchains[j],
-                        factory: entry.factory,
+                        factory: entry.factory
+                          ? entry.factory.toLowerCase()
+                          : null,
                       })
                   )
                 );

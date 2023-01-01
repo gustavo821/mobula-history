@@ -225,7 +225,7 @@ export async function findAllPairs(
                     createdAt: creationTimestamp,
                     createdAtBlock: Number(pair.blockNumber),
                     priceUSD: 0,
-                    factory: factory || null,
+                    factory: factory ? factory.toLowerCase() : null,
                   });
                   succeed = true;
                 } catch (e) {
