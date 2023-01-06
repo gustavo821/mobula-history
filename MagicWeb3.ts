@@ -80,7 +80,7 @@ export class MagicWeb3 {
               {
                 headers: {
                   Authorization:
-                    "Token a9b1c399948e3ccebe42d363fec3c3ef5f00c7e4",
+                    "Token 8i5oo7z4g5lzc1ly2u1lntclfxs23sbxqg7gryn1",
                 },
               }
             )
@@ -129,7 +129,7 @@ export const loadProxies = async (pages: number, offset = 1) => {
       (
         await axios.get("https://proxy.webshare.io/api/proxy/list/?page=" + i, {
           headers: {
-            Authorization: "Token bmqf0k11ugx45lyumsc2r35lam1qxsfw7tbiozh2",
+            Authorization: "Token 8i5oo7z4g5lzc1ly2u1lntclfxs23sbxqg7gryn1",
           },
         })
       )?.data?.results?.map((proxy: any) => {
