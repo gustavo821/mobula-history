@@ -214,7 +214,7 @@ export async function getMarketData(
             const pair = pairsMap.get(entry.address.toLowerCase())!;
             const clearData = entry.data.split("0x")[1];
 
-            if (pair && factoryWhitelist[pair.factory!]) {
+            if (pair && factoryWhitelist[pair.factory?.toLowerCase()!]) {
               // console.log(
               //   yellow(
               //     "New entry detected at block " +

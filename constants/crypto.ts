@@ -1,9 +1,49 @@
-import { ethers } from "ethers";
+import { TransactionResponse } from "@ethersproject/providers";
+import { BigNumber, ethers } from "ethers";
 
 export const DEAD_WALLETS = [
   "0x000000000000000000000000000000000000dEaD",
   "0x0000000000000000000000000000000000000000",
 ];
+
+export interface IBlock {
+  hash: string;
+  parentHash: string;
+  number: number;
+
+  timestamp: number;
+  nonce: string;
+  difficulty: number;
+  _difficulty: BigNumber;
+
+  gasLimit: BigNumber;
+  gasUsed: BigNumber;
+
+  miner: string;
+  extraData: string;
+  baseFeePerGas?: null | BigNumber;
+}
+
+export interface IBlockWithTransactions extends IBlock {
+  transactions: Array<TransactionResponse>;
+}
+
+export const openSeaOrderFulfilledEvent =
+  "0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31";
+
+export const ENSNameRegisteredEvent =
+  "0xca6abbe9d7f11422cb6ca7629fbf6fe9efb1c621f71ce8f02b9f2a230097404f";
+
+export const X2Y2Event =
+  "0x3cbb63f144840e5b1b0a38a7c19211d2e89de4d7c5faf8b2d3c1776c302d1d33";
+
+export const mintV3Event =
+  "0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde"; //emits for addLiq
+export const collectV3 =
+  "0x70935338e69775456a85ddef226c395fb668b63fa0115f5f20610b388e6ca9c0"; //emits when removeLiq
+
+export const swapV3Event =
+  "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67";
 
 export const BNBProvider = ethers.getDefaultProvider(
   "https://bsc-dataseed.binance.org/"
@@ -4130,15 +4170,17 @@ export const supportedRPCs: { [index: string]: string[] } = {
     "https://nodes.vefinetwork.org/smartchain",
   ],
   Ethereum: [
+    "https://mainnet.infura.io/v3/ad0a35a0de15402e98f945e40f3d4ca3",
+    "https://eth-mainnet.g.alchemy.com/v2/8BO3ArYtxLHwY7VQmGZ7yj1J8wzDKpCs",
+    "https://eth-mainnet-public.unifra.io",
     "https://ethereum.publicnode.com",
     "https://eth-rpc.gateway.pokt.network",
     "https://eth-mainnet.nodereal.io/v1/1659dfb40aa24bbb8153a677b98064d7",
     "https://api.securerpc.com/v1",
     "https://api.bitstack.com/v1/wNFxbiJyQsSeLrX8RRCHi7NpRxrlErZk/DjShIqLishPCTB9HiMkPHXjUM9CNM9Na/ETH/mainnet",
-    "https://cloudflare-eth.com",
+    //"https://cloudflare-eth.com",
     "https://1rpc.io/eth",
     "https://rpc.flashbots.net",
-    "https://eth-mainnet-public.unifra.io",
     "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
     "https://www.ankr.com/rpc/eth/",
   ],

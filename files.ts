@@ -37,10 +37,10 @@ export const readLastBlock = async (name: string) => {
           fs.open("logs/" + name, "r", function postOpen(_, fd) {
             fs.read(
               fd,
-              Buffer.alloc(2000),
+              Buffer.alloc(5000),
               0,
-              2000,
-              stats.size - 2000,
+              5000,
+              stats.size - 5000,
               function postRead(_, __, buffer) {
                 resolve(buffer.toString("utf8"));
               }
@@ -48,8 +48,10 @@ export const readLastBlock = async (name: string) => {
           });
         });
       })) as string;
-
-      const block = end.split('"blockNumber":')[1].split(",")[0];
+      const bnArray = end.split('"blockNumber":');
+      const block = end
+        .split('"blockNumber":')
+        [bnArray?.length - 1].split(",")[0];
       if (!isNaN(parseInt(block))) {
         return parseInt(block);
       } else {

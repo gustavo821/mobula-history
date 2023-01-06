@@ -12,6 +12,15 @@ export type Blockchain =
   | "Optimism"
   | "Polygon";
 
+export interface IPairV3 extends Pair {
+  X96: string;
+  fee: number;
+  token0_address: string;
+  token1_address: string;
+  token0_decimals: number;
+  token1_decimals: number;
+}
+
 export interface Token {
   address: string;
   type: "eth" | "stable" | "other";
