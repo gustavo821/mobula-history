@@ -807,3 +807,5 @@ export async function loadOnChainData({
     closeDataFile(name);
   }
 }
+
+console.log("test");
