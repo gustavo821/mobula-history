@@ -312,8 +312,10 @@ export async function loadOnChainData({
               if (!pushed) {
                 pushed = true;
                 needToRecall.push({
-                  fromBlock: j + 1,
-                  toBlock: j + RPCLimits[blockchain].maxRange[type][mode],
+                  fromBlock: Math.floor(j) + 1,
+                  toBlock: Math.floor(
+                    j + RPCLimits[blockchain].maxRange[type][mode]
+                  ),
                   type: "pair",
                 });
               }
@@ -338,8 +340,10 @@ export async function loadOnChainData({
                 if (!pushed) {
                   pushed = true;
                   needToRecall.push({
-                    fromBlock: j + 1,
-                    toBlock: j + RPCLimits[blockchain].maxRange[type][mode],
+                    fromBlock: Math.floor(j) + 1,
+                    toBlock: Math.floor(
+                      j + RPCLimits[blockchain].maxRange[type][mode]
+                    ),
                     type: "pair",
                   });
                 }
@@ -493,11 +497,29 @@ export async function loadOnChainData({
         }[] = [];
 
         for (let p = 0; p < needToRecall.length; p++) {
+          console.log(
+            "Starting for " +
+              needToRecall[p].fromBlock +
+              "-" +
+              needToRecall[p].toBlock +
+              " (" +
+              bufferRange +
+              ")"
+          );
           for (
             let x = needToRecall[p].fromBlock;
-            x < needToRecall[p].toBlock;
+            x <= needToRecall[p].toBlock;
             x += bufferRange
           ) {
+            console.log(
+              "Operating for " +
+                needToRecall[p].fromBlock +
+                "-" +
+                needToRecall[p].toBlock +
+                " (" +
+                x +
+                ")"
+            );
             if (x + bufferRange < latestBlock.number) {
               recalls.push(
                 new Promise((resolve) => {
@@ -505,13 +527,26 @@ export async function loadOnChainData({
 
                   const { eth, proxy, rpc } = magicWeb3.logEth();
 
+                  const fromBlock = x === needToRecall[p].fromBlock ? x : x + 1;
+                  const toBlock =
+                    x + bufferRange > needToRecall[p].toBlock
+                      ? needToRecall[p].toBlock
+                      : x + bufferRange;
+
+                  console.log(
+                    "I KNOW YOU WANT IT",
+                    toBlock,
+                    x + bufferRange,
+                    needToRecall[p].toBlock
+                  );
+
                   const id = setTimeout(() => {
                     if (!pushed) {
                       pushed = true;
                       tempNeedToRecall.push({
                         type: needToRecall[p].type,
-                        fromBlock: x,
-                        toBlock: x + bufferRange,
+                        fromBlock,
+                        toBlock,
                       });
                     }
                     resolve({ reason: "Timeout", rpc });
@@ -519,8 +554,8 @@ export async function loadOnChainData({
 
                   eth
                     .getPastLogs({
-                      fromBlock: Math.floor(x),
-                      toBlock: Math.floor(x + bufferRange),
+                      fromBlock: Math.floor(fromBlock),
+                      toBlock: Math.floor(toBlock),
                       address: address
                         ? address.length > 10000
                           ? undefined
@@ -530,11 +565,16 @@ export async function loadOnChainData({
                     })
                     .catch((e) => {
                       if (!pushed) {
+                        JSON.stringify({
+                          fromBlock,
+                          toBlock,
+                          error: true,
+                        });
                         pushed = true;
                         tempNeedToRecall.push({
                           type: needToRecall[p].type,
-                          fromBlock: x,
-                          toBlock: x + bufferRange,
+                          fromBlock,
+                          toBlock,
                         });
 
                         if (
@@ -562,6 +602,24 @@ export async function loadOnChainData({
                       }
                     })
                     .then((reply) => {
+                      if (reply) {
+                        console.log(
+                          JSON.stringify({
+                            fromBlock: Math.floor(fromBlock),
+                            toBlock: Math.floor(fromBlock),
+                            address: address
+                              ? address.length > 10000
+                                ? undefined
+                                : address
+                              : undefined,
+                            topics,
+                            reply,
+                            iterations,
+                            rpc,
+                          })
+                        );
+                      }
+
                       clearTimeout(id);
                       resolve(reply);
                     });
