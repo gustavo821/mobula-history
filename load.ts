@@ -350,15 +350,6 @@ export async function loadOnChainData({
               })
               .then((reply) => {
                 clearTimeout(id);
-                console.log(
-                  JSON.stringify({
-                    fromBlock: Math.floor(j) + 1,
-                    toBlock: Math.floor(
-                      j + RPCLimits[blockchain].maxRange[type][mode]
-                    ),
-                    reply,
-                  })
-                );
                 resolve(reply);
               });
           })
@@ -497,29 +488,11 @@ export async function loadOnChainData({
         }[] = [];
 
         for (let p = 0; p < needToRecall.length; p++) {
-          console.log(
-            "Starting for " +
-              needToRecall[p].fromBlock +
-              "-" +
-              needToRecall[p].toBlock +
-              " (" +
-              bufferRange +
-              ")"
-          );
           for (
             let x = needToRecall[p].fromBlock;
             x <= needToRecall[p].toBlock;
             x += bufferRange
           ) {
-            console.log(
-              "Operating for " +
-                needToRecall[p].fromBlock +
-                "-" +
-                needToRecall[p].toBlock +
-                " (" +
-                x +
-                ")"
-            );
             if (x + bufferRange < latestBlock.number) {
               recalls.push(
                 new Promise((resolve) => {
@@ -532,13 +505,6 @@ export async function loadOnChainData({
                     x + bufferRange > needToRecall[p].toBlock
                       ? needToRecall[p].toBlock
                       : x + bufferRange;
-
-                  console.log(
-                    "I KNOW YOU WANT IT",
-                    toBlock,
-                    x + bufferRange,
-                    needToRecall[p].toBlock
-                  );
 
                   const id = setTimeout(() => {
                     if (!pushed) {
@@ -565,11 +531,6 @@ export async function loadOnChainData({
                     })
                     .catch((e) => {
                       if (!pushed) {
-                        JSON.stringify({
-                          fromBlock,
-                          toBlock,
-                          error: true,
-                        });
                         pushed = true;
                         tempNeedToRecall.push({
                           type: needToRecall[p].type,
@@ -587,7 +548,9 @@ export async function loadOnChainData({
                         } else if (
                           e.toString().includes("Forbidden") ||
                           e.toString().includes("CONNECTION ERROR") ||
-                          e.toString().includes("limit")
+                          e.toString().includes("limit") ||
+                          e.toString().includes("allowed") ||
+                          e.toString().includes("execute")
                         ) {
                           resolve({ reason: "Forbidden", rpc });
                         } else if (
@@ -596,30 +559,14 @@ export async function loadOnChainData({
                           resolve({ reason: "Timeout", rpc });
                         } else if (e.toString().includes("Internal error")) {
                           resolve({ reason: "Internal", rpc });
+                        } else if (e.toString().includes("end")) {
+                          resolve({ reason: "Last block bigger", rpc });
                         } else {
                           console.log(e.toString(), proxy, rpc);
                         }
                       }
                     })
                     .then((reply) => {
-                      if (reply) {
-                        console.log(
-                          JSON.stringify({
-                            fromBlock: Math.floor(fromBlock),
-                            toBlock: Math.floor(fromBlock),
-                            address: address
-                              ? address.length > 10000
-                                ? undefined
-                                : address
-                              : undefined,
-                            topics,
-                            reply,
-                            iterations,
-                            rpc,
-                          })
-                        );
-                      }
-
                       clearTimeout(id);
                       resolve(reply);
                     });
