@@ -292,7 +292,7 @@ export async function loadOnChainData({
 
       const addresses: { [index: string]: boolean } = {};
 
-      if (address && address.length) {
+      if (address && address.length && typeof address !== "string") {
         for (const entry of address) {
           addresses[entry] = true;
         }
