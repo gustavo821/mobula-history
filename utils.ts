@@ -1,18 +1,19 @@
 import axios from "axios";
 import { ethers } from "ethers";
 import fs from "fs";
-import config from "./config";
+import { config } from "./config";
 import { DEAD_WALLETS, providers } from "./constants/crypto";
 import { readLastChar } from "./files";
 import { MagicWeb3 } from "./MagicWeb3";
 export const restartSettings = {
-  block: parseInt(config.BLOCK) || 0,
+  block: config.BLOCK ? parseInt(config.BLOCK) : 0,
   restart: true, // config.RESTART === "true",
   debug: false,
   noRestart: false,
 };
 
 export const sendSlackMessage = async (channel: string, text: string) => {
+  if (!config.SLACK_HOOK) return;
   try {
     await axios.post(config.SLACK_HOOK as string, {
       channel,

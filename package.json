@@ -19,7 +19,7 @@
     "stream-chain": "^2.2.5",
     "stream-json": "^1.7.4",
     "tsc": "^2.0.4",
-    "typescript": "^4.8.4",
+    "typescript": "^4.9.4",
     "web3": "^1.7.5"
   },
   "devDependencies": {

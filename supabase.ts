@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { config } from "./config";
 
 export async function getShardedPairsFromTokenId(id: number): Promise<any[]> {
   const hexa = "0123456789abcdef";
@@ -123,19 +124,19 @@ export class MetaSupabase {
     this.clusters = {
       "pairs-1": createClient(
         "https://yggsdmqfwpntpjbdnpfo.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnZ3NkbXFmd3BudHBqYmRucGZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0MzE3OSwiZXhwIjoxOTgyNTE5MTc5fQ.AvyUlzlLS2fp_3_sYTfSasAHu-p6XeK3sm-wk_b1Mio"
+        config.PAIRS1
       ),
       "pairs-2": createClient(
         "https://lisnecmeheedtflucdxy.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpc25lY21laGVlZHRmbHVjZHh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NjYzMywiZXhwIjoxOTgyNTIyNjMzfQ.y0uOCsVxdK_jJeDW-wXKG61UbdLjUe9VkOhUzgVX6Lw"
+        config.PAIRS2
       ),
       "pairs-3": createClient(
         "https://cganiivuxawwfdqtebjk.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnYW5paXZ1eGF3d2ZkcXRlYmprIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NzU5NiwiZXhwIjoxOTgyNTIzNTk2fQ.VeXrF6N62AMYrG-5vLeXNK22nCaKrLSPoaO2bOpI3B4"
+        config.PAIRS3
       ),
       "pairs-4": createClient(
         "https://eznupqzoqqsywujpqbsf.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6bnVwcXpvcXFzeXd1anBxYnNmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2Njk0NzM4NiwiZXhwIjoxOTgyNTIzMzg2fQ.zGwmsmD9Nwj98OxZWD8iSnFVp6M72Nxe2XwogB53O3E"
+        config.PAIRS4
       ),
       "pairs-uni-v3": createClient(
         "https://euswcwombxgaktzpuxbm.supabase.co",
@@ -143,7 +144,7 @@ export class MetaSupabase {
       ),
       default: createClient(
         "https://ylcxvfbmqzwinymcjlnx.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsY3h2ZmJtcXp3aW55bWNqbG54Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2MDIxMzEzOSwiZXhwIjoxOTc1Nzg5MTM5fQ.Pv5rENBrJQ3kOpxoSfcQWgfI8G5FuWyWvmZzynD_gQ4"
+        config.DEFAULT
       ),
     };
   }

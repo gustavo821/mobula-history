@@ -16,12 +16,10 @@ import { getCirculatingSupply, sendSlackMessage, types } from "./utils";
 let currentAsset: any;
 
 console.log = (...params) => {
-  if (currentAsset) {
-    fs.appendFileSync(
-      "logs/" + (currentAsset?.name || "NONAME") + ".logs",
-      "\n[" + new Date().toISOString() + "] " + params.join(" ")
-    );
-  }
+  fs.appendFileSync(
+    "logs/" + (currentAsset?.name || "NONAME") + ".logs",
+    "\n[" + new Date().toISOString() + "] " + params.join(" ")
+  );
 };
 
 export const RPCLimits: {
