@@ -4,3 +4,4 @@
 .env
 /dist
 /scripts
+config.ts
