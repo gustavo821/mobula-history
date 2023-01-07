@@ -1,14 +1,199 @@
 import { green, yellow } from "colorette";
 import fs from "fs";
 import Web3 from "web3";
-import { Log } from "web3-core";
-import { supportedRPCs } from "./constants/crypto";
+import { Log, Transaction, TransactionReceipt } from "web3-core";
+import { supportedRPCs, transferEvent } from "./constants/crypto";
 import { closeDataFile, openDataFile, pushData } from "./files";
 import { MagicWeb3 } from "./MagicWeb3";
 import { RPCLimits } from "./main";
 import { getForSure, MetaSupabase } from "./supabase";
 import { Blockchain } from "./types";
 import { printMemoryUsage, restartSettings } from "./utils";
+
+export async function fetchAllReceipts({
+  hashes,
+  collection,
+  blockchain,
+  proxies,
+  range,
+}: {
+  hashes: string[];
+  collection: string;
+  blockchain: Blockchain;
+  proxies: string[];
+  range: number;
+}): Promise<TransactionReceipt[]> {
+  const receipts: TransactionReceipt[] = [];
+
+  const startString = `{"data":[`;
+  const endString = `]}`;
+
+  fs.appendFileSync(`logs/${collection}-log-events.json`, startString);
+
+  console.info("Fetching receipts for " + hashes.length + " transactions");
+
+  const prm: Promise<any>[] = [];
+  let globalSuccess = 0;
+  let isFirst = true;
+
+  for (const hash of hashes || []) {
+    prm.push(
+      new Promise(async (resolveTop) => {
+        let finished = false;
+        let errCount = 0;
+        while (!finished && errCount < 15) {
+          //console.info(`requesting ${hash}`);
+          finished = await new Promise(async (resolve) => {
+            const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
+            const TO = setTimeout(() => {
+              resolve(false);
+            }, 10000);
+            try {
+              const bufferReceipt = await magicWeb3
+                .eth()
+                .getTransactionReceipt(hash);
+              clearTimeout(TO);
+              let shouldPush = false;
+              const bufferLogs: Log[] = [];
+              for (const log of bufferReceipt.logs || []) {
+                if (log.address.toLowerCase() != collection) {
+                  if (
+                    log.topics[0] == transferEvent &&
+                    log.topics.length == 3
+                  ) {
+                    shouldPush = true;
+                    bufferLogs.push(log);
+                  }
+                }
+                let frefer;
+              }
+              if (shouldPush) {
+                bufferReceipt.logs = bufferLogs;
+                receipts.push(bufferReceipt as TransactionReceipt);
+                fs.appendFileSync(
+                  `logs/${collection}-log-events.json`,
+                  `${isFirst ? "" : ","}${JSON.stringify(bufferReceipt)},`
+                );
+
+                isFirst = false;
+              }
+
+              globalSuccess++;
+              console.info(
+                `fetched: ${globalSuccess}/${hashes.length} feched receipts: ${receipts.length}`
+              );
+              resolve(true);
+            } catch (e) {
+              clearTimeout(TO);
+              errCount++;
+              resolve(false);
+            }
+          });
+        }
+        resolveTop(null);
+      })
+    );
+
+    if (prm.length >= range) {
+      console.info(`awaiting ${prm.length} promises`);
+      await Promise.all(prm);
+      prm.length = 0;
+    }
+  }
+
+  if (prm.length > 0) {
+    console.info(`awaiting ${prm.length} promises`);
+    await Promise.all(prm);
+    prm.length = 0;
+  }
+
+  fs.appendFileSync(`logs/${collection}-log-events.json`, endString);
+
+  return receipts;
+}
+
+export async function fetchAllValues({
+  hashes,
+  collection,
+  blockchain,
+  proxies,
+  range,
+}: {
+  hashes: string[];
+  collection: string;
+  blockchain: Blockchain;
+  proxies: string[];
+  range: number;
+}): Promise<Transaction[]> {
+  const txs: Transaction[] = [];
+
+  const startString = `{"data":[`;
+  const endString = `]}`;
+
+  fs.appendFileSync(`logs/${collection}-tx-values.json`, startString);
+
+  console.info("Fetching values for " + hashes.length + " transactions");
+
+  const prm: Promise<any>[] = [];
+  let globalSuccess = 0;
+  let isFirst = true;
+
+  for (const hash of hashes || []) {
+    prm.push(
+      new Promise(async (resolveTop) => {
+        let finished = false;
+        let errCount = 0;
+        while (!finished && errCount < 15) {
+          //console.info(`requesting ${hash}`);
+          finished = await new Promise(async (resolve) => {
+            const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
+            const TO = setTimeout(() => {
+              resolve(false);
+            }, 10000);
+            try {
+              const bufferTx = await magicWeb3.eth().getTransaction(hash);
+              clearTimeout(TO);
+
+              fs.appendFileSync(
+                `logs/${collection}-tx-values.json`,
+                `${isFirst ? "" : ","}${JSON.stringify(bufferTx)}`
+              );
+
+              isFirst = false;
+
+              globalSuccess++;
+              console.info(
+                `fetched: ${globalSuccess}/${hashes.length} feched values`
+              );
+              resolve(true);
+            } catch (e) {
+              clearTimeout(TO);
+              errCount++;
+              resolve(false);
+            }
+          });
+        }
+        resolveTop(null);
+      })
+    );
+
+    if (prm.length >= range) {
+      console.info(`awaiting ${prm.length} promises`);
+      await Promise.all(prm);
+      prm.length = 0;
+    }
+  }
+
+  if (prm.length > 0) {
+    console.info(`awaiting ${prm.length} promises`);
+    await Promise.all(prm);
+    prm.length = 0;
+  }
+
+  fs.appendFileSync(`logs/${collection}-tx-values.json`, endString);
+
+  return txs;
+}
 
 export async function loadOnChainData({
   address,
@@ -19,6 +204,7 @@ export async function loadOnChainData({
   name,
   id,
   type,
+  dataMustContain,
 }: {
   address?: string | string[] | undefined;
   topics?: (string | string[] | null)[] | undefined;
@@ -28,6 +214,7 @@ export async function loadOnChainData({
   blockchain: Blockchain;
   id: number;
   type: string;
+  dataMustContain?: string;
 }) {
   if (!address || address.length > 0) {
     console.log("Genesis : " + genesis);
@@ -125,8 +312,10 @@ export async function loadOnChainData({
               if (!pushed) {
                 pushed = true;
                 needToRecall.push({
-                  fromBlock: j + 1,
-                  toBlock: j + RPCLimits[blockchain].maxRange[type][mode],
+                  fromBlock: Math.floor(j) + 1,
+                  toBlock: Math.floor(
+                    j + RPCLimits[blockchain].maxRange[type][mode]
+                  ),
                   type: "pair",
                 });
               }
@@ -151,8 +340,10 @@ export async function loadOnChainData({
                 if (!pushed) {
                   pushed = true;
                   needToRecall.push({
-                    fromBlock: j + 1,
-                    toBlock: j + RPCLimits[blockchain].maxRange[type][mode],
+                    fromBlock: Math.floor(j) + 1,
+                    toBlock: Math.floor(
+                      j + RPCLimits[blockchain].maxRange[type][mode]
+                    ),
                     type: "pair",
                   });
                 }
@@ -187,13 +378,25 @@ export async function loadOnChainData({
           if ((entry?.length || 0) > 0) {
             success++;
             ok++;
-            // @ts-ignore
-            return entry.filter(
-              (reply: Log) =>
-                !address ||
-                address === reply.address ||
-                (addresses && addresses[reply.address.toLowerCase()])
-            );
+            if (dataMustContain) {
+              // @ts-ignore
+              return entry.filter(
+                (reply: Log) =>
+                  !address ||
+                  address === reply.address ||
+                  (address?.includes(reply.address.toLowerCase()) &&
+                    (reply?.topics?.[0] == transferEvent ||
+                      reply?.data?.includes(dataMustContain)))
+              );
+            } else {
+              // @ts-ignore
+              return entry.filter(
+                (reply: Log) =>
+                  !address ||
+                  address === reply.address ||
+                  address?.includes(reply.address.toLowerCase())
+              );
+            }
           } else {
             if (entry) ok++;
             return (
@@ -206,6 +409,10 @@ export async function loadOnChainData({
           }
         })
       );
+
+      if (data.length > 0) {
+        let freferf;
+      }
 
       console.log(Date.now());
 
@@ -290,11 +497,29 @@ export async function loadOnChainData({
         }[] = [];
 
         for (let p = 0; p < needToRecall.length; p++) {
+          console.log(
+            "Starting for " +
+              needToRecall[p].fromBlock +
+              "-" +
+              needToRecall[p].toBlock +
+              " (" +
+              bufferRange +
+              ")"
+          );
           for (
             let x = needToRecall[p].fromBlock;
-            x < needToRecall[p].toBlock;
+            x <= needToRecall[p].toBlock;
             x += bufferRange
           ) {
+            console.log(
+              "Operating for " +
+                needToRecall[p].fromBlock +
+                "-" +
+                needToRecall[p].toBlock +
+                " (" +
+                x +
+                ")"
+            );
             if (x + bufferRange < latestBlock.number) {
               recalls.push(
                 new Promise((resolve) => {
@@ -302,13 +527,26 @@ export async function loadOnChainData({
 
                   const { eth, proxy, rpc } = magicWeb3.logEth();
 
+                  const fromBlock = x === needToRecall[p].fromBlock ? x : x + 1;
+                  const toBlock =
+                    x + bufferRange > needToRecall[p].toBlock
+                      ? needToRecall[p].toBlock
+                      : x + bufferRange;
+
+                  console.log(
+                    "I KNOW YOU WANT IT",
+                    toBlock,
+                    x + bufferRange,
+                    needToRecall[p].toBlock
+                  );
+
                   const id = setTimeout(() => {
                     if (!pushed) {
                       pushed = true;
                       tempNeedToRecall.push({
                         type: needToRecall[p].type,
-                        fromBlock: x,
-                        toBlock: x + bufferRange,
+                        fromBlock,
+                        toBlock,
                       });
                     }
                     resolve({ reason: "Timeout", rpc });
@@ -316,8 +554,8 @@ export async function loadOnChainData({
 
                   eth
                     .getPastLogs({
-                      fromBlock: Math.floor(x),
-                      toBlock: Math.floor(x + bufferRange),
+                      fromBlock: Math.floor(fromBlock),
+                      toBlock: Math.floor(toBlock),
                       address: address
                         ? address.length > 10000
                           ? undefined
@@ -327,11 +565,16 @@ export async function loadOnChainData({
                     })
                     .catch((e) => {
                       if (!pushed) {
+                        JSON.stringify({
+                          fromBlock,
+                          toBlock,
+                          error: true,
+                        });
                         pushed = true;
                         tempNeedToRecall.push({
                           type: needToRecall[p].type,
-                          fromBlock: x,
-                          toBlock: x + bufferRange,
+                          fromBlock,
+                          toBlock,
                         });
 
                         if (
@@ -359,6 +602,24 @@ export async function loadOnChainData({
                       }
                     })
                     .then((reply) => {
+                      if (reply) {
+                        console.log(
+                          JSON.stringify({
+                            fromBlock: Math.floor(fromBlock),
+                            toBlock: Math.floor(fromBlock),
+                            address: address
+                              ? address.length > 10000
+                                ? undefined
+                                : address
+                              : undefined,
+                            topics,
+                            reply,
+                            iterations,
+                            rpc,
+                          })
+                        );
+                      }
+
                       clearTimeout(id);
                       resolve(reply);
                     });
@@ -419,6 +680,7 @@ export async function loadOnChainData({
           // console.log('Chibre', reply && typeof reply != "string")
 
           if (
+            !dataMustContain &&
             reply &&
             typeof reply != "string" &&
             reply.filter(
@@ -435,6 +697,32 @@ export async function loadOnChainData({
                   !address ||
                   address === entry.address ||
                   (addresses && addresses[entry.address.toLowerCase()])
+              )
+            );
+          } else if (
+            dataMustContain &&
+            reply &&
+            typeof reply != "string" &&
+            reply.filter((entry: Log) => {
+              !address ||
+                address === entry.address ||
+                (addresses &&
+                  addresses[entry.address.toLowerCase()] &&
+                  address?.includes(reply?.address?.toLowerCase()) &&
+                  (reply?.topics?.[0] == transferEvent ||
+                    reply?.data?.includes(dataMustContain)));
+            }).length > 0
+          ) {
+            formattedEvents.push(
+              reply.filter(
+                (entry: Log) =>
+                  !address ||
+                  address === entry.address ||
+                  (addresses &&
+                    addresses[entry.address.toLowerCase()] &&
+                    address?.includes(reply.address.toLowerCase()) &&
+                    (reply?.topics?.[0] == transferEvent ||
+                      reply?.data?.includes(dataMustContain)))
               )
             );
           } else if (reply && typeof reply != "string") {

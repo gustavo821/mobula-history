@@ -1,6 +1,7 @@
 import fs from "fs";
 import { loadProxies } from "./MagicWeb3";
 import { getMarketData } from "./market-univ2";
+import { getMarketDataV3 } from "./market-univ3";
 import { getMarketMetaData } from "./meta-market";
 import { findAllPairs } from "./pairs-univ2";
 import { loadDecimals } from "./push-decimals";
@@ -10,7 +11,7 @@ import {
   getShardedPairsFromTokenId,
   MetaSupabase,
 } from "./supabase";
-import { Pair } from "./types";
+import { IPairV3, Pair } from "./types";
 import { getCirculatingSupply, sendSlackMessage, types } from "./utils";
 let currentAsset: any;
 
@@ -63,6 +64,7 @@ export const RPCLimits: {
     maxRange: {
       "pairs-univ2": { default: 5000, hardcore: 5000 },
       "market-univ2": { default: 50, hardcore: 25 },
+      "transfers-nft": { default: 50, hardcore: 50 },
     },
     timeout: 100000,
     timeoutPlus: 20000,
@@ -125,17 +127,19 @@ export async function main(settings: any, data: any[]) {
       .select("tried")
       .match({ id: currentAsset.id });
 
-    if (!upToDateAsset?.[0].tried || settings.isPushingAnyway) {
-      await supabase
-        .from("assets")
-        .update({ tried: true })
-        .match({ id: data[i].id });
+    if (true || !upToDateAsset?.[0].tried || settings.isPushingAnyway) {
+      // await supabase
+      //   .from("assets")
+      //   .update({ tried: true })
+      //   .match({ id: data[i].id });
 
       console.log("Updated asset. Iterating...");
 
       if (data[i].blockchains && data[i].blockchains.length > 0) {
         console.log("Calling sharded pairs.");
-        let pairs = await getShardedPairsFromTokenId(data[i].id);
+        let pairs = settings.isLoadingMarketV3
+          ? []
+          : await getShardedPairsFromTokenId(data[i].id);
         console.log("Done calling sharded pairs.");
 
         await sendSlackMessage(
@@ -143,6 +147,74 @@ export async function main(settings: any, data: any[]) {
           "Loading data for asset " + data[i].name
         );
         console.info("Loading data for asset " + data[i].name, settings);
+
+        const poolsByChain: IPairV3[][] = [];
+        if (settings.isLoadingMarketV3) {
+          const { data: pools, error: errPools } = await supabase
+            .from("Pools-v3")
+            .select("*")
+            .or(`token0_id.eq.${data[i].id},token1_id.eq.${data[i].id}`);
+
+          for (const chain of data[i].blockchains || []) {
+            poolsByChain.push([]);
+          }
+
+          for (const pool of pools || []) {
+            if (pool.address != "0x7858e59e0c01ea06df3af3d20ac7b0003275d4bf") {
+              continue;
+            }
+            pool.pairData = pool.pair_data;
+            delete pool.pair_data;
+
+            const bufferObj0 = {
+              type: pool.token0_type,
+              address: pool.token0_address,
+              decimals: pool.token0_decimals,
+            };
+            const bufferObj1 = {
+              type: pool.token1_type,
+              address: pool.token1_address,
+              decimals: pool.token1_decimals,
+            };
+
+            pool.token0 = bufferObj0;
+            pool.token1 = bufferObj1;
+            delete pool.token0_type;
+            delete pool.token0_address;
+            delete pool.token0_decimals;
+
+            delete pool.token1_type;
+            delete pool.token1_address;
+            delete pool.token1_decimals;
+
+            poolsByChain[data[i].blockchains.indexOf(pool.blockchain)].push(
+              pool
+            );
+          }
+
+          const {
+            liquidity_history,
+            market_cap_history,
+            price_history,
+            volume_history,
+            total_volume_history,
+          } = await getMarketDataV3(
+            proxies,
+            data[i].contracts,
+            data[i].blockchains,
+            poolsByChain,
+            data[i].circulatingSupply,
+            data[i].id,
+            settings.fromDate,
+            settings.toDate
+          );
+
+          let freferfre;
+        }
+
+        ////////////////////////////////////////////////////////////////
+        //Code below is the original
+        ////////////////////////////////////////////////////////////////
 
         if (
           settings.isLoadingPairs === true ||

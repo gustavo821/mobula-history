@@ -118,6 +118,7 @@ export class MetaSupabase {
       "pairs-2": ["0x4", "0x5", "0x6", "0x7"],
       "pairs-3": ["0x8", "0x9", "0xa", "0xb"],
       "pairs-4": ["0xc", "0xd", "0xe", "0xf"],
+      "pairs-uni-v3": ["Pools-v3"],
     };
 
     this.clusters = {
@@ -136,6 +137,10 @@ export class MetaSupabase {
       "pairs-4": createClient(
         "https://eznupqzoqqsywujpqbsf.supabase.co",
         config.PAIRS4
+      ),
+      "pairs-uni-v3": createClient(
+        "https://euswcwombxgaktzpuxbm.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1c3djd29tYnhnYWt0enB1eGJtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2ODE1OTQ2MCwiZXhwIjoxOTgzNzM1NDYwfQ.GNFAWR-ecjiWpn72mfHubwFdF92ytRhBnrUlWEikp9o"
       ),
       default: createClient(
         "https://ylcxvfbmqzwinymcjlnx.supabase.co",
