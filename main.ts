@@ -9,14 +9,14 @@ import { pushPairs } from "./push-pairs";
 import {
   getShardedPairsFromAddresses,
   getShardedPairsFromTokenId,
-  MetaSupabase
+  MetaSupabase,
 } from "./supabase";
 import { IPairV3, Pair } from "./types";
 import { getCirculatingSupply, sendSlackMessage, types } from "./utils";
 let currentAsset: any;
 
 console.log = (...params: any[]) => {
-  fs.appendFileSync(^
+  fs.appendFileSync(
     "logs/" + (currentAsset?.name || "NONAME") + ".logs",
     "\n[" + new Date().toISOString() + "] " + params.join(" ")
   );
