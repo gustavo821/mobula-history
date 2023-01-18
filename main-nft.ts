@@ -155,7 +155,7 @@ function formatNFTTransferEvent(event: Log, _blockchain: string): ITransferNFT {
     };
 
     return bufferTransfer;
-  } catch (e: any) {
+  } catch (e) {
     console.error(`formatNFTTransferEvent: ${e.message}`);
     return null as unknown as ITransferNFT;
   }
@@ -414,7 +414,7 @@ export async function mainNFT(settings: any, data: any[]) {
 
             getterHashToERCTransfer[bufferTransfer.hash].push(bufferTransfer);
           }
-        } catch (e: any) {
+        } catch (e) {
           console.error(`getNFTTransferEvents: ${e.message}`);
         }
       });
@@ -535,7 +535,7 @@ export async function mainNFT(settings: any, data: any[]) {
           }
 
           let frefe;
-        } catch (e: any) {
+        } catch (e) {
           console.info(`ERROR pipeline2: ${e?.message || e}`);
         }
       });
@@ -609,7 +609,7 @@ export async function mainNFT(settings: any, data: any[]) {
           }
 
           let frefe;
-        } catch (e: any) {
+        } catch (e) {
           console.info(`ERROR pipeline3: ${e?.message || e}`);
         }
       });

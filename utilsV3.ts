@@ -199,7 +199,7 @@ export async function getTokenDecimalForSure(
       const bufferDecimal = await ctr.decimals();
       decimal = Number(BigInt(bufferDecimal._hex));
       return decimal;
-    } catch (e: any) {
+    } catch (e) {
       errCount++;
       if (errCount > 10) {
         console.log(
@@ -232,7 +232,7 @@ async function promiseWrapper(query: Promise<any>): Promise<any> {
         await query;
         clearTimeout(TO);
         resolve(true);
-      } catch (e: any) {
+      } catch (e) {
         console.error(`promiseWrapper() error: ${e.message}`);
         clearTimeout(TO);
         resolve(false);

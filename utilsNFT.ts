@@ -50,7 +50,7 @@ export function formatENSEvent(
         : 0,
     };
     return formattedEvent;
-  } catch (e: any) {
+  } catch (e) {
     console.error(`NFT: formatENSEvent error: ${e.message}`);
     return null as unknown as ITransferNFT;
   }
@@ -97,7 +97,7 @@ export function formatX2Y2Event(
         : 0,
     };
     return formattedEvent;
-  } catch (e: any) {
+  } catch (e) {
     console.error(`NFT: formatENSEvent error: ${e.message}`);
     return null as unknown as ITransferNFT;
   }
@@ -191,7 +191,7 @@ export function formatOpenSeaEvent(
         ).toString()),
         (formattedEvent.marketplace = "OpenSea port 1.1");
     }
-  } catch (e: any) {
+  } catch (e) {
     console.error(
       `formatOpenSeaEvent:error ${event.transactionHash} ${e.message}`
     );
@@ -222,7 +222,7 @@ export function formatERCTransferEvent(
     };
 
     return bufferTransfer;
-  } catch (e: any) {
+  } catch (e) {
     console.error(`formatERCTransferEvent: ${e.message}`);
     return null as unknown as ITokenTransfer;
   }
@@ -256,7 +256,7 @@ export async function loadBlocksLocally(
             );
             receivedResponses++;
             resolve(null);
-          } catch (e: any) {
+          } catch (e) {
             receivedBlock = false;
             console.warn(
               `Error while getting full block ${block} with ethers: ${e.message}`

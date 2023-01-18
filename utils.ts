@@ -214,7 +214,7 @@ export async function getBlockToTimestamp(
                 clearTimeout(TO);
                 resolveBlock(false);
               }
-            } catch (e: any) {
+            } catch (e) {
               if (errCount > 20) {
                 process.exit(666);
               }
@@ -226,7 +226,7 @@ export async function getBlockToTimestamp(
               );
             }
           });
-        } catch (e: any) {
+        } catch (e) {
           if (errCount > 20) {
             process.exit(666);
           }
