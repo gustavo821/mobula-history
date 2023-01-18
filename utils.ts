@@ -6,7 +6,9 @@ import { DEAD_WALLETS, providers } from "./constants/crypto";
 import { readLastChar } from "./files";
 import { MagicWeb3 } from "./MagicWeb3";
 export const restartSettings = {
-  block: config.BLOCK ? parseInt(config.BLOCK) : 0,
+  block: (config.BLOCK as unknown as string)
+    ? parseInt(config.BLOCK as unknown as string)
+    : 0,
   restart: true, // config.RESTART === "true",
   debug: false,
   noRestart: false,
@@ -15,7 +17,7 @@ export const restartSettings = {
 export const sendSlackMessage = async (channel: string, text: string) => {
   if (!config.SLACK_HOOK) return;
   try {
-    await axios.post(config.SLACK_HOOK as string, {
+    await axios.post(config.SLACK_HOOK as unknown as string, {
       channel,
       text,
     });

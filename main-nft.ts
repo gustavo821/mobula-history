@@ -33,7 +33,7 @@ const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 let currentAsset: any;
 
-console.log = (...params) => {
+console.log = (...params: any[]) => {
   if (currentAsset) {
     fs.appendFileSync(
       "logs/" + currentAsset.name + ".logs",
