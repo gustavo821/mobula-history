@@ -506,6 +506,11 @@ export async function loadOnChainData({
                       ? needToRecall[p].toBlock
                       : x + bufferRange;
 
+                  if (fromBlock > toBlock) {
+                    resolve([]);
+                    return;
+                  }
+
                   const id = setTimeout(() => {
                     if (!pushed) {
                       pushed = true;
@@ -517,6 +522,13 @@ export async function loadOnChainData({
                     }
                     resolve({ reason: "Timeout", rpc });
                   }, RPCLimits[blockchain].timeout + iterations * RPCLimits[blockchain].timeoutPlus);
+
+                  console.log(
+                    JSON.stringify({
+                      fromBlock: Math.floor(fromBlock),
+                      toBlock: Math.floor(toBlock),
+                    })
+                  );
 
                   eth
                     .getPastLogs({
@@ -552,6 +564,7 @@ export async function loadOnChainData({
                           e.toString().includes("allowed") ||
                           e.toString().includes("execute")
                         ) {
+                          console.log(e.toString());
                           resolve({ reason: "Forbidden", rpc });
                         } else if (
                           e.toString().includes("CONNECTION TIMEOUT")
@@ -607,7 +620,9 @@ export async function loadOnChainData({
                 broken[entry.rpc]++;
                 break;
             }
-            return " (" + (typeof entry == "object" ? "OK" : "ERROR") + ")";
+            return " (ERROR)";
+          } else {
+            return " (OK)";
           }
         });
 
