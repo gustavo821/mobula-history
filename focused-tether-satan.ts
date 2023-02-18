@@ -1,5 +1,5 @@
 import { main } from "./main";
-import { MetaSupabase } from "./supabase";
+import { createSupabaseClient } from "./supabase";
 
 const settings = {
   isPushingAnyway: true,
@@ -11,7 +11,7 @@ const settings = {
 };
 
 (async () => {
-  const supabase = new MetaSupabase();
+  const supabase =  createSupabaseClient()
   const { data, error } = (await supabase
     .from("assets")
     .select(
@@ -19,7 +19,7 @@ const settings = {
     )
     .order("market_cap", { ascending: false })
     .not("contracts", "eq", "{}")
-    .match({ name: "Tether" })
+    .match({ name: "CubeBase" })
     .limit(100)) as any;
 
   // console.info(data);

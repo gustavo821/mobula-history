@@ -7,9 +7,9 @@ import { findAllPairs } from "./pairs-univ2";
 import { loadDecimals } from "./push-decimals";
 import { pushPairs } from "./push-pairs";
 import {
+  createSupabaseClient,
   getShardedPairsFromAddresses,
-  getShardedPairsFromTokenId,
-  MetaSupabase,
+  getShardedPairsFromTokenId
 } from "./supabase";
 import { IPairV3, Pair } from "./types";
 import { getCirculatingSupply, sendSlackMessage, types } from "./utils";
@@ -113,11 +113,23 @@ export const RPCLimits: {
     timeout: 100000,
     timeoutPlus: 2000,
   },
+  'DFK Subnet': {
+    queriesLimit: {
+      default: 1,
+      hardcore: 0.25,
+    },
+    maxRange: {
+      "pairs-univ2": { default: 2000, hardcore: 2000 },
+      "market-univ2": { default: 1250, hardcore: 25 },
+    },
+    timeout: 100000,
+    timeoutPlus: 2000,
+  }, 
 };
 
 export async function main(settings: any, data: any[]) {
   const proxies = await loadProxies(2, 0);
-  const supabase = new MetaSupabase();
+  const supabase =  createSupabaseClient()
 
   for (let i = 0; i < data.length; i++) {
     currentAsset = data[i];
@@ -127,7 +139,8 @@ export async function main(settings: any, data: any[]) {
       .select("tried")
       .match({ id: currentAsset.id });
 
-    if (true || !upToDateAsset?.[0].tried || settings.isPushingAnyway) {
+    if (!upToDateAsset?.[0].tried || settings.isPushingAnyway) {
+     await supabase.from('assets').update({tried: true}).match({id: currentAsset.id })
       // await supabase
       //   .from("assets")
       //   .update({ tried: true })

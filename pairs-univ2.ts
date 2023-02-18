@@ -1,24 +1,23 @@
 import { green, red } from "colorette";
 import fs from "fs";
+import { blockchains as mobulaBlockchains } from 'mobula-utils';
+import { BlockchainName } from "mobula-utils/lib/chains/model";
 import { AbiItem } from "web3-utils";
+import { ERC20ABI, uniswapV2ABI } from "./constants/abi";
 import {
-  createPairEvent,
-  ERC20ABI,
-  supportedRPCs,
-  uniswapV2ABI,
-  WETHAndStables,
+  createPairEvent
 } from "./constants/crypto";
 import { readLastBlock } from "./files";
 import { loadOnChainData } from "./load";
 import { MagicWeb3 } from "./MagicWeb3";
 import { RPCLimits } from "./main";
-import { Blockchain, Pair } from "./types";
-import { getBlockToTimestamp, shouldLoad } from "./utils";
+import { Pair } from "./types";
+import { getBlockToTimestamp, getTypeFromAddress, shouldLoad } from "./utils";
 
 export async function findAllPairs(
   proxies: string[],
   contracts: string[],
-  blockchains: Blockchain[],
+  blockchains: BlockchainName[],
   id: number
 ): Promise<Pair[][]> {
   const crossChainFormattedPairs: any = [];
@@ -102,21 +101,13 @@ export async function findAllPairs(
                       .split("0x000000000000000000000000")[1]
                       .toLowerCase();
 
-                  // const decimalsToken0 = await new ethers.Contract(
-                  //   token0Address,
-                  //   ["function decimals() public view returns(uint256)"],
-                  //   new ethers.providers.JsonRpcProvider(
-                  //     supportedRPCs[blockchains[i]][0]
-                  //   )
-                  // ).decimals();
-
                   /**
                    * This may look a bit off, but it's because as we're creating
                    * one instance per call, we need to randomize the proxy process.
                    */
 
                   const decimalsToken0 = await new MagicWeb3(
-                    supportedRPCs[blockchains[i]][0],
+                    mobulaBlockchains[blockchains[i]].rpcs[0],
                     [proxies[Math.floor(Math.random() * proxies.length)]]
                   )
                     .contract(ERC20ABI as AbiItem[], token0Address)
@@ -130,7 +121,7 @@ export async function findAllPairs(
                       .toLowerCase();
 
                   const decimalsToken1 = await new MagicWeb3(
-                    supportedRPCs[blockchains[i]][0],
+                    mobulaBlockchains[blockchains[i]].rpcs[0],
                     [proxies[Math.floor(Math.random() * proxies.length)]]
                   )
                     .contract(ERC20ABI as AbiItem[], token1Address)
@@ -141,7 +132,7 @@ export async function findAllPairs(
 
                   //timestamps must be * 1000 otherwise the date will be wrong!!!!
                   const creationTimestamp = await getBlockToTimestamp(
-                    new MagicWeb3(supportedRPCs[blockchains[i]][0], proxies),
+                    new MagicWeb3(mobulaBlockchains[blockchains[i]].rpcs[0], proxies),
                     pair.blockNumber
                   );
 
@@ -150,7 +141,7 @@ export async function findAllPairs(
                   console.log("Fetching factory");
                   try {
                     factory = await new MagicWeb3(
-                      supportedRPCs[blockchains[i]][0],
+                      mobulaBlockchains[blockchains[i]].rpcs[0],
                       [proxies[Math.floor(Math.random() * proxies.length)]]
                     )
                       .contract(
@@ -170,7 +161,7 @@ export async function findAllPairs(
 
                   try {
                     factory = await new MagicWeb3(
-                      supportedRPCs[blockchains[i]][0],
+                      mobulaBlockchains[blockchains[i]].rpcs[0],
                       [proxies[Math.floor(Math.random() * proxies.length)]]
                     )
                       .contract(
@@ -194,24 +185,12 @@ export async function findAllPairs(
                         .slice(0, 40),
                     token0: {
                       address: token0Address,
-                      type: WETHAndStables[blockchains[i]].includes(
-                        token0Address
-                      )
-                        ? WETHAndStables[blockchains[i]][0] == token0Address
-                          ? "eth"
-                          : "stable"
-                        : "other",
+                      type: getTypeFromAddress(token0Address.toLowerCase() as Lowercase<string>, blockchains[i]),
                       decimals: Number(decimalsToken0),
                     },
                     token1: {
                       address: token1Address,
-                      type: WETHAndStables[blockchains[i]].includes(
-                        token1Address
-                      )
-                        ? WETHAndStables[blockchains[i]][0] == token1Address
-                          ? "eth"
-                          : "stable"
-                        : "other",
+                      type: getTypeFromAddress(token1Address.toLowerCase() as Lowercase<string>, blockchains[i]),
                       decimals: Number(decimalsToken1),
                     },
                     pairData: {

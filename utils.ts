@@ -1,8 +1,10 @@
 import axios from "axios";
 import { ethers } from "ethers";
 import fs from "fs";
+import { blockchains as mobulaBlockchains } from "mobula-utils";
+import { BlockchainName } from "mobula-utils/lib/chains/model";
 import { config } from "./config";
-import { DEAD_WALLETS, providers } from "./constants/crypto";
+import { DEAD_WALLETS } from "./constants/crypto";
 import { readLastChar } from "./files";
 import { MagicWeb3 } from "./MagicWeb3";
 export const restartSettings = {
@@ -85,18 +87,18 @@ export async function getCirculatingSupply(
   total_supply_contracts: string[],
   circulating_supply_addresses: string[],
   contracts: string[],
-  blockchains: string[]
+  blockchains: BlockchainName[]
 ) {
   let total_supply = BigInt(0);
   for (const contract of total_supply_contracts) {
-    const blockchain = blockchains[contracts.indexOf(contract)];
+    const blockchain = mobulaBlockchains[blockchains[contracts.indexOf(contract)]];
 
-    if (providers[blockchain]) {
+    if (blockchain) {
       try {
         const tokenDecimals = await new ethers.Contract(
           contract,
           ["function decimals() external view returns (uint256)"],
-          providers[blockchain]
+          blockchain.ethersProvider
         ).decimals();
 
         if (tokenDecimals.toNumber() > 0) {
@@ -104,7 +106,7 @@ export async function getCirculatingSupply(
             await new ethers.Contract(
               contract,
               ["function totalSupply() external view returns (uint256)"],
-              providers[blockchain]
+              blockchain.ethersProvider
             ).totalSupply()
           )
             .div(ethers.utils.parseUnits("10", tokenDecimals.toNumber() - 1))
@@ -114,7 +116,7 @@ export async function getCirculatingSupply(
             await new ethers.Contract(
               contract,
               ["function totalSupply() external view returns (uint256)"],
-              providers[blockchain]
+              blockchain.ethersProvider
             ).totalSupply()
           ).toBigInt();
         }
@@ -131,16 +133,16 @@ export async function getCirculatingSupply(
 
   let tokenDecimals;
 
-  if (providers[blockchains[0]]) {
+  if (mobulaBlockchains[blockchains[0]]) {
     tokenDecimals = await new ethers.Contract(
       contracts[0],
       ["function decimals() external view returns (uint256)"],
-      providers[blockchains[0]]
+      mobulaBlockchains[blockchains[0]]?.ethersProvider
     ).decimals();
   }
 
   for (const address of circulating_supply_addresses) {
-    if (providers[blockchains[0]]) {
+    if (mobulaBlockchains[blockchains[0]]) {
       if (tokenDecimals.toNumber() > 0) {
         circulating_supply -= (
           await new ethers.Contract(
@@ -148,7 +150,7 @@ export async function getCirculatingSupply(
             [
               "function balanceOf(address account) external view returns (uint256)",
             ],
-            providers[blockchains[0]]
+            mobulaBlockchains[blockchains[0]]?.ethersProvider
           ).balanceOf(address)
         )
           .div(ethers.utils.parseUnits("10", tokenDecimals.toNumber() - 1))
@@ -160,8 +162,8 @@ export async function getCirculatingSupply(
             [
               "function balanceOf(address account) external view returns (uint256)",
             ],
-            providers[blockchains[0]]
-          ).balanceOf(address)
+            mobulaBlockchains[blockchains[0]]?.ethersProvider
+            ).balanceOf(address)
         ).toBigInt();
       }
     }
@@ -223,7 +225,7 @@ export async function getBlockToTimestamp(
               errCount++;
               console.error(
                 `getBlockToTimestamp() error in inner promise, re-trying... ${
-                  e?.message ? e.message : e
+                  (e as any)?.message ? (e as any)?.message : e
                 }`
               );
             }
@@ -234,7 +236,7 @@ export async function getBlockToTimestamp(
           }
           errCount++;
           console.error(
-            `getBlockToTimestamp() handled error: ${e?.message ? e.message : e}`
+            `getBlockToTimestamp() handled error: ${(e as any)?.message ? (e as any)?.message : e}`
           );
         }
 
@@ -249,4 +251,15 @@ export async function getBlockToTimestamp(
   await Promise.all(blockResponses);
 
   return blockTimestamp;
+}
+
+export const getTypeFromAddress = (address: Lowercase<string>, blockchainName: BlockchainName) => {
+  const blockchain = mobulaBlockchains[blockchainName];
+  if (!blockchain) throw new Error('Blockchain unknown');
+
+  if (blockchain.eth.address === address.toString()) return 'eth';
+  if (blockchain.getStables().map(entry => entry.address).includes(address)) return 'stable';
+  
+  return 'other'
+
 }

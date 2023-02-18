@@ -12,12 +12,12 @@ import {
   ENSNameRegisteredEvent,
   openSeaOrderFulfilledEvent,
   transferEvent,
-  X2Y2Event,
+  X2Y2Event
 } from "./constants/crypto";
 import { readLastBlock } from "./files";
 import { fetchAllReceipts, fetchAllValues, loadOnChainData } from "./load";
 import { loadProxies } from "./MagicWeb3";
-import { MetaSupabase } from "./supabase";
+import { createSupabaseClient } from "./supabase";
 import { shouldLoad } from "./utils";
 import {
   formatENSEvent,
@@ -25,7 +25,7 @@ import {
   formatOpenSeaEvent,
   formatX2Y2Event,
   ITokenTransfer,
-  ITransferNFT,
+  ITransferNFT
 } from "./utilsNFT";
 import { toNumber } from "./utilsV3";
 
@@ -156,14 +156,14 @@ function formatNFTTransferEvent(event: Log, _blockchain: string): ITransferNFT {
 
     return bufferTransfer;
   } catch (e) {
-    console.error(`formatNFTTransferEvent: ${e.message}`);
+    console.error(`formatNFTTransferEvent: ${(e as any).message}`);
     return null as unknown as ITransferNFT;
   }
 }
 
 export async function mainNFT(settings: any, data: any[]) {
   const proxies = await loadProxies(10);
-  const supabase = new MetaSupabase();
+  const supabase =  createSupabaseClient();
   const getterChainToETHPrice: { [index: string]: number } = {};
 
   const ethPrices = await supabase.from("eth_history").select("name,price_now");
@@ -415,7 +415,7 @@ export async function mainNFT(settings: any, data: any[]) {
             getterHashToERCTransfer[bufferTransfer.hash].push(bufferTransfer);
           }
         } catch (e) {
-          console.error(`getNFTTransferEvents: ${e.message}`);
+          console.error(`getNFTTransferEvents: ${(e as any).message}`);
         }
       });
 
@@ -536,7 +536,7 @@ export async function mainNFT(settings: any, data: any[]) {
 
           let frefe;
         } catch (e) {
-          console.info(`ERROR pipeline2: ${e?.message || e}`);
+          console.info(`ERROR pipeline2: ${(e as any)?.message || e}`);
         }
       });
 
@@ -610,7 +610,7 @@ export async function mainNFT(settings: any, data: any[]) {
 
           let frefe;
         } catch (e) {
-          console.info(`ERROR pipeline3: ${e?.message || e}`);
+          console.info(`ERROR pipeline3: ${(e as any)?.message || e}`);
         }
       });
 

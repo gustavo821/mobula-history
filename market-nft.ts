@@ -1,5 +1,6 @@
 import { green, magenta, red } from "colorette";
 import fs from "fs";
+import { BlockchainName } from "mobula-utils/lib/chains/model";
 import { chain } from "stream-chain";
 import { parser } from "stream-json";
 import { pick } from "stream-json/filters/Pick";
@@ -9,20 +10,20 @@ import {
   collectV3,
   mintV3Event,
   swapEvent,
-  swapV3Event,
+  swapV3Event
 } from "./constants/crypto";
 import { readLastBlock } from "./files";
 import { loadOnChainData } from "./load";
 import { RPCLimits } from "./main";
-import { MetaSupabase } from "./supabase";
-import { Blockchain, IPairV3, Token } from "./types";
+import { createSupabaseClient } from "./supabase";
+import { IPairV3, Token } from "./types";
 import { fetchEntry, getEthPrice, shouldLoad } from "./utils";
 import { formatV3EventToV2 } from "./utilsV3";
 
 export async function getMarketDataNFT(
   proxies: string[],
   contracts: string[],
-  blockchains: Blockchain[],
+  blockchains: BlockchainName[],
   pairs: IPairV3[][],
   circulatingSupply: number,
   id: number,
@@ -37,7 +38,7 @@ export async function getMarketDataNFT(
 }> {
   console.log(proxies.length, "proxies loaded.");
   console.log("Loading market data...");
-  const supabase = new MetaSupabase();
+  const supabase =  createSupabaseClient()
 
   const { data: blocks_history } = (await supabase
     .from("blocks_history")
@@ -46,7 +47,7 @@ export async function getMarketDataNFT(
       blocks: {
         blocks: [number, number][];
       };
-      name: Blockchain;
+      name: BlockchainName;
     }[];
   };
 
@@ -57,7 +58,7 @@ export async function getMarketDataNFT(
       blocks: {
         blocks: [number, number][];
       };
-      name: Blockchain;
+      name: BlockchainName;
     }[];
   };
 
@@ -91,7 +92,7 @@ export async function getMarketDataNFT(
     data: {
       price: [number, number][];
       recent_price: [number, number][];
-      name: Blockchain;
+      name: BlockchainName;
     }[];
   };
 
@@ -925,7 +926,7 @@ export async function getMarketDataNFT(
     }
   }
 
-  let earliest: Blockchain = blockchains[0];
+  let earliest: BlockchainName = blockchains[0];
   let earliestTimestamp = Infinity;
 
   for (let i = 0; i < blockchains.length; i++) {

@@ -1,16 +1,17 @@
 import { ethers } from "ethers";
-import { supportedRPCs } from "./constants/crypto";
-import { MetaSupabase } from "./supabase";
+import { blockchains as mobulaBlockchains } from "mobula-utils";
+import { BlockchainName } from "mobula-utils/lib/chains/model";
+import { createSupabaseClient } from "./supabase";
 
+
+// @TODO type safety
 export async function loadDecimals(asset: any) {
-  const supabase = new MetaSupabase();
+  const supabase = createSupabaseClient()
   try {
     const decimals: (number | null)[] = [];
     for (let i = 0; i < asset.contracts.length; i++) {
       try {
-        const provider = new ethers.providers.JsonRpcProvider(
-          supportedRPCs[asset.blockchains[i]][0]
-        );
+        const provider =  mobulaBlockchains[asset.blockchains[i] as BlockchainName].ethersProvider;
 
         const decimal = await new ethers.Contract(
           asset.contracts[i],

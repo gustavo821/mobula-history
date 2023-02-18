@@ -2,7 +2,7 @@ import { main } from "./main";
 import { createSupabaseClient } from "./supabase";
 
 const settings = {
-  isPushingAnyway: true,
+  isPushingAnyway: false,
   isLoadingPairs: true,
   isLoadingMarket: true,
   isPushingToDB: true,
@@ -12,7 +12,6 @@ const settings = {
 
 (async () => {
   const supabase = createSupabaseClient()
-  console.info('Making it')
   const { data, error } = (await supabase
     .from("assets")
     .select(
@@ -21,6 +20,7 @@ const settings = {
     .order("created_at", { ascending: false })
     .not("contracts", "eq", "{}")
     .match({ history_loaded: false })
+    .lt('market_cap', 5000000)
     .limit(100)) as any;
 
   // console.info(data);

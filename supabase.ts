@@ -1,9 +1,12 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { config } from "./config";
+import { Postbula } from "./postbula";
+
+let supabaseDO: any;
 
 export async function getShardedPairsFromTokenId(id: number): Promise<any[]> {
   const hexa = "0123456789abcdef";
-  const supabasePairs = await createPairsSupabaseClient();
+  const supabasePairs = await createSupabaseClient();
   const responses = [];
   const finalArray: any[] = [];
   const timeBefore = Date.now();
@@ -60,7 +63,7 @@ export async function getShardedPairsFromAddresses(
   addresses: string[]
 ): Promise<any[]> {
   const hexa = "0123456789abcdef";
-  const supabasePairs = await createPairsSupabaseClient();
+  const supabasePairs = await createSupabaseClient();
   const responses = [];
   const finalArray: any[] = [];
   const timeBefore = Date.now();
@@ -104,8 +107,16 @@ export async function getShardedPairsFromAddresses(
   return finalArray;
 }
 
-export const createPairsSupabaseClient = () => {
-  return new MetaSupabase();
+export const createSupabaseClient = () => {
+  if (!supabaseDO)
+  supabaseDO = new Postbula(
+    config.POSTGRE_PUBLIC,
+    config.POSTGRE_KEY,
+    config.POSTGRE_URL,
+  );
+
+  return supabaseDO 
+
 };
 
 export class MetaSupabase {

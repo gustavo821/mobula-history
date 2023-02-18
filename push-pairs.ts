@@ -1,9 +1,10 @@
-import { blocksBlockchains } from "./constants/crypto";
-import { getShardedPairsFromTokenId, MetaSupabase } from "./supabase";
+import { blockchains } from "mobula-utils";
+import { BlockchainName } from "mobula-utils/lib/chains/model";
+import { createSupabaseClient, getShardedPairsFromTokenId } from "./supabase";
 
 export async function pushPairs(id: number) {
   const pairs = await getShardedPairsFromTokenId(id);
-  const supabase = new MetaSupabase();
+  const supabase =  createSupabaseClient()
 
   if (pairs.length > 0) {
     const pairsData = {} as { [index: string]: number };
@@ -20,10 +21,9 @@ export async function pushPairs(id: number) {
       );
     });
 
-    const getType = (type: string, blockchain: string) => {
-      if (type == "eth") {
-        return blocksBlockchains.find((entry: any) => entry.name == blockchain)!
-          .eth;
+    const getType = (type: string, blockchain: BlockchainName) => {
+      if (type == "eth" && blockchains[blockchain]) {
+        return blockchains[blockchain]!.eth.name;
       } else if (type == "stable") {
         return "USD";
       } else return "Others";

@@ -1,13 +1,14 @@
 import { green, yellow } from "colorette";
 import fs from "fs";
+import { blockchains as mobulaBlockchains } from "mobula-utils";
+import { BlockchainName } from "mobula-utils/lib/chains/model";
 import Web3 from "web3";
 import { Log, Transaction, TransactionReceipt } from "web3-core";
-import { supportedRPCs, transferEvent } from "./constants/crypto";
+import { transferEvent } from "./constants/crypto";
 import { closeDataFile, openDataFile, pushData } from "./files";
 import { MagicWeb3 } from "./MagicWeb3";
 import { RPCLimits } from "./main";
-import { getForSure, MetaSupabase } from "./supabase";
-import { Blockchain } from "./types";
+import { createSupabaseClient, getForSure } from "./supabase";
 import { printMemoryUsage, restartSettings } from "./utils";
 
 export async function fetchAllReceipts({
@@ -19,7 +20,7 @@ export async function fetchAllReceipts({
 }: {
   hashes: string[];
   collection: string;
-  blockchain: Blockchain;
+  blockchain: BlockchainName;
   proxies: string[];
   range: number;
 }): Promise<TransactionReceipt[]> {
@@ -44,7 +45,7 @@ export async function fetchAllReceipts({
         while (!finished && errCount < 15) {
           //console.info(`requesting ${hash}`);
           finished = await new Promise(async (resolve) => {
-            const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
+            const magicWeb3 = new MagicWeb3(mobulaBlockchains[blockchain].rpcs, proxies);
             const TO = setTimeout(() => {
               resolve(false);
             }, 10000);
@@ -121,7 +122,7 @@ export async function fetchAllValues({
 }: {
   hashes: string[];
   collection: string;
-  blockchain: Blockchain;
+  blockchain: BlockchainName;
   proxies: string[];
   range: number;
 }): Promise<Transaction[]> {
@@ -146,7 +147,7 @@ export async function fetchAllValues({
         while (!finished && errCount < 15) {
           //console.info(`requesting ${hash}`);
           finished = await new Promise(async (resolve) => {
-            const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
+            const magicWeb3 = new MagicWeb3(mobulaBlockchains[blockchain].rpcs, proxies);
             const TO = setTimeout(() => {
               resolve(false);
             }, 10000);
@@ -211,7 +212,7 @@ export async function loadOnChainData({
   genesis: number;
   proxies: string[];
   name: string;
-  blockchain: Blockchain;
+  blockchain: BlockchainName;
   id: number;
   type: string;
   dataMustContain?: string;
@@ -226,11 +227,10 @@ export async function loadOnChainData({
     const mode =
       address?.length && address?.length > 10000 ? "hardcore" : "default";
 
-    const supabase = new MetaSupabase();
-
-    const magicWeb3 = new MagicWeb3(supportedRPCs[blockchain], proxies);
+    const supabase =  createSupabaseClient()
+    const magicWeb3 = new MagicWeb3(mobulaBlockchains[blockchain].rpcs, proxies);
     const normalWeb3 = new Web3(
-      new Web3.providers.HttpProvider(supportedRPCs[blockchain][0])
+      new Web3.providers.HttpProvider(mobulaBlockchains[blockchain].rpcs[0])
     );
 
     const latestBlock = await getForSure(normalWeb3.eth.getBlock("latest"));
@@ -238,7 +238,7 @@ export async function loadOnChainData({
       (latestBlock.number - genesis) /
       RPCLimits[blockchain].maxRange[type][mode] /
       RPCLimits[blockchain].queriesLimit[mode] /
-      (proxies.length * Math.min(supportedRPCs[blockchain].length, 2));
+      (proxies.length * Math.min(mobulaBlockchains[blockchain].rpcs.length, 2));
 
     if (!restartSettings.restart || !fs.existsSync("logs/" + name)) {
       console.log(
@@ -444,7 +444,7 @@ export async function loadOnChainData({
             2 /
             Math.ceil(
               (proxies.length *
-                supportedRPCs[blockchain].length *
+                mobulaBlockchains[blockchain].rpcs.length *
                 RPCLimits[blockchain].queriesLimit[
                   address?.length && address?.length > 10000
                     ? "hardcore"
@@ -769,5 +769,3 @@ export async function loadOnChainData({
     closeDataFile(name);
   }
 }
-
-console.log("test");

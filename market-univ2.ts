@@ -1,5 +1,6 @@
 import { green, magenta, red } from "colorette";
 import fs from "fs";
+import { BlockchainName } from "mobula-utils/lib/chains/model";
 import { chain } from "stream-chain";
 import { parser } from "stream-json";
 import { pick } from "stream-json/filters/Pick";
@@ -8,14 +9,14 @@ import { factoryWhitelist, swapEvent, syncEvent } from "./constants/crypto";
 import { readLastBlock } from "./files";
 import { loadOnChainData } from "./load";
 import { RPCLimits } from "./main";
-import { MetaSupabase } from "./supabase";
-import { Blockchain, Pair, Token } from "./types";
+import { createSupabaseClient } from "./supabase";
+import { Pair, Token } from "./types";
 import { fetchEntry, getEthPrice, shouldLoad } from "./utils";
 
 export async function getMarketData(
   proxies: string[],
   contracts: string[],
-  blockchains: Blockchain[],
+  blockchains: BlockchainName[],
   pairs: Pair[][],
   circulatingSupply: number,
   id: number,
@@ -30,7 +31,7 @@ export async function getMarketData(
 }> {
   console.log(proxies.length, "proxies loaded.");
   console.log("Loading market data...");
-  const supabase = new MetaSupabase();
+  const supabase =  createSupabaseClient()
 
   const { data: blocks_history } = (await supabase
     .from("blocks_history")
@@ -39,7 +40,7 @@ export async function getMarketData(
       blocks: {
         blocks: [number, number][];
       };
-      name: Blockchain;
+      name: BlockchainName;
     }[];
   };
 
@@ -50,7 +51,7 @@ export async function getMarketData(
       blocks: {
         blocks: [number, number][];
       };
-      name: Blockchain;
+      name: BlockchainName;
     }[];
   };
 
@@ -84,7 +85,7 @@ export async function getMarketData(
     data: {
       price: [number, number][];
       recent_price: [number, number][];
-      name: Blockchain;
+      name: BlockchainName;
     }[];
   };
 
@@ -847,7 +848,7 @@ export async function getMarketData(
     }
   }
 
-  let earliest: Blockchain = blockchains[0];
+  let earliest: BlockchainName = blockchains[0];
   let earliestTimestamp = Infinity;
 
   for (let i = 0; i < blockchains.length; i++) {

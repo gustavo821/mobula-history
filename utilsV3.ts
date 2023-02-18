@@ -6,7 +6,7 @@ import {
   collectV3,
   mintV3Event,
   swapEvent,
-  syncEvent,
+  syncEvent
 } from "./constants/crypto";
 import { IPairV3 } from "./types";
 
@@ -208,11 +208,11 @@ export async function getTokenDecimalForSure(
         return -1;
       }
       if (
-        (e?.error?.code != "TIMEOUT" && e?.message?.includes("reverted")) ||
-        e?.message?.includes("Reverted")
+        ((e as any)?.error?.code != "TIMEOUT" && (e as any)?.message?.includes("reverted")) ||
+        (e as any)?.message?.includes("Reverted")
       ) {
         console.error(`getTokenDecimalForSure: REVERTED for ${contract}`);
-        console.log(e.message);
+        console.log((e as any).message);
         return decimal;
       }
       await delay(1500);
@@ -233,7 +233,7 @@ async function promiseWrapper(query: Promise<any>): Promise<any> {
         clearTimeout(TO);
         resolve(true);
       } catch (e) {
-        console.error(`promiseWrapper() error: ${e.message}`);
+        console.error(`promiseWrapper() error: ${(e as any).message}`);
         clearTimeout(TO);
         resolve(false);
       }

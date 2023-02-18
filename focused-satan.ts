@@ -1,5 +1,5 @@
 import { mainNFT } from "./main-nft";
-import { MetaSupabase } from "./supabase";
+import { createSupabaseClient } from "./supabase";
 
 const settings = {
   isPushingAnyway: true,
@@ -14,8 +14,7 @@ const settings = {
 };
 
 (async () => {
-  const supabase = new MetaSupabase();
-
+  const supabase =  createSupabaseClient()
   // const { data, error } = (await supabase
   //   .from("assets")
   //   .select(

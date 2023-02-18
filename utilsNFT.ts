@@ -1,12 +1,13 @@
 import { Log } from "@ethersproject/providers";
 import { ethers } from "ethers";
+import { blockchains as mobulaBlockchains } from "mobula-utils";
+import { BlockchainName } from "mobula-utils/lib/chains/model";
 import { ENS_REGISTRAR_ABI, OPENSEA_SEAPORT_ABI, X2Y2_ABI } from "./abis";
 import {
   ENSNameRegisteredEvent,
   IBlockWithTransactions,
   openSeaOrderFulfilledEvent,
-  supportedRPCs,
-  X2Y2Event,
+  X2Y2Event
 } from "./constants/crypto";
 import { toNumberHighPrecision } from "./utilsV3";
 
@@ -51,7 +52,7 @@ export function formatENSEvent(
     };
     return formattedEvent;
   } catch (e) {
-    console.error(`NFT: formatENSEvent error: ${e.message}`);
+    console.error(`NFT: formatENSEvent error: ${(e as any).message}`);
     return null as unknown as ITransferNFT;
   }
 }
@@ -98,7 +99,7 @@ export function formatX2Y2Event(
     };
     return formattedEvent;
   } catch (e) {
-    console.error(`NFT: formatENSEvent error: ${e.message}`);
+    console.error(`NFT: formatENSEvent error: ${(e as any).message}`);
     return null as unknown as ITransferNFT;
   }
 }
@@ -193,7 +194,7 @@ export function formatOpenSeaEvent(
     }
   } catch (e) {
     console.error(
-      `formatOpenSeaEvent:error ${event.transactionHash} ${e.message}`
+      `formatOpenSeaEvent:error ${event.transactionHash} ${(e as any).message}`
     );
   }
 
@@ -223,19 +224,19 @@ export function formatERCTransferEvent(
 
     return bufferTransfer;
   } catch (e) {
-    console.error(`formatERCTransferEvent: ${e.message}`);
+    console.error(`formatERCTransferEvent: ${(e as any).message}`);
     return null as unknown as ITokenTransfer;
   }
 }
 
 export async function loadBlocksLocally(
   getterBlockNumberToTimestamp: { [index: string]: number },
-  chain: string,
+  chain: BlockchainName,
   fromBlock: number,
   toBlock: number
 ): Promise<IBlockWithTransactions[]> {
   const blockResponses: any[] = [];
-  const provider = ethers.getDefaultProvider(supportedRPCs[chain][0]);
+  const provider = mobulaBlockchains[chain].ethersProvider;
   const fullBlocks: IBlockWithTransactions[] = [] as IBlockWithTransactions[];
   let receivedResponses = 0;
   for (let block = fromBlock; block <= toBlock; block++) {
@@ -259,7 +260,7 @@ export async function loadBlocksLocally(
           } catch (e) {
             receivedBlock = false;
             console.warn(
-              `Error while getting full block ${block} with ethers: ${e.message}`
+              `Error while getting full block ${block} with ethers: ${(e as any).message}`
             );
             await delay(1500);
           }

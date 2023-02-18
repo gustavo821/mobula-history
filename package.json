@@ -16,6 +16,7 @@
     "ethers": "^5.6.9",
     "fast-levenshtein": "^3.0.0",
     "https-proxy-agent": "^5.0.1",
+    "mobula-utils": "^1.0.5",
     "stream-chain": "^2.2.5",
     "stream-json": "^1.7.4",
     "tsc": "^2.0.4",
@@ -23,6 +24,7 @@
     "web3": "^1.7.5"
   },
   "devDependencies": {
-    "@types/node": "^18.7.1"
+    "@types/node": "^18.7.1",
+    "@types/node-fetch": "^2.6.2"
   }
 }
